@@ -24,3 +24,17 @@ tmp
 
 ## PROJECT::SPECIFIC
 conftest.dSYM
+
+## JRuby
+.jruby
+*.lock
+
+## Gradle
+build
+.gradle
+gradle.properties
+
+## eclipse
+.project
+.classpath
+.settings

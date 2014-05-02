@@ -1,0 +1,87 @@
+
+buildscript {
+	repositories {
+		mavenCentral()
+	}
+	dependencies { gradleApi() }
+}
+
+ext {
+	jrubyVersion = "1.7.12"
+}
+
+task downloadJRuby(group:'JRuby') {
+	doFirst {
+		file("$buildDir").mkdirs()
+	}
+	doLast {
+		ant.get(src:"http://jruby.org.s3.amazonaws.com/downloads/${jrubyVersion}/jruby-bin-${jrubyVersion}.zip", dest:"$buildDir")
+	}
+}
+
+task extractJRuby(group:'JRuby', type: Copy) {
+	mustRunAfter downloadJRuby
+	from zipTree(file("$buildDir/jruby-bin-${jrubyVersion}.zip"))
+	into file('.jruby')
+}
+
+task installBundler(type: JRubyTask) {
+	mustRunAfter extractJRuby
+	args << "gem install --no-rdoc --no-ri bundler"
+}
+
+task bundleInstall(type: JRubyTask) {
+	mustRunAfter installBundler
+    args << "bundle install"
+}
+
+task bundle(group: 'JRuby', dependsOn:[installBundler, bundleInstall])
+task setupJRuby(group:'JRuby', dependsOn:[downloadJRuby, extractJRuby, bundle])
+
+task bundleUpdate(type: JRubyTask) {
+	mustRunAfter installBundler
+    args << "bundle update"
+}
+ 
+task bundleList(type: JRubyTask) {
+	mustRunAfter installBundler
+    args << "bundle list"
+}
+
+task rake(type: JRubyTask) {
+	mustRunAfter extractJRuby
+	args << "rake -T"
+}
+
+task rakeSpec(type: JRubyTask) {
+	mustRunAfter extractJRuby
+	args << 'rake spec'
+}
+
+class JRubyTask extends org.gradle.api.DefaultTask {
+
+	@org.gradle.api.tasks.Input
+	def args = ['-S']
+	
+	JRubyTask() {
+		group = 'JRuby'
+	}
+	
+	@TaskAction
+	void exec() {
+		project.exec {
+			def home = ".jruby${File.separator}jruby-${project.jrubyVersion}"
+			environment 'GEM_HOME', home
+			environment 'PATH', "$home/bin${File.pathSeparator}${System.getenv('PATH')}"
+			executable "$home/bin/jruby"
+			args makeArgs()
+			def host = System.properties['http.proxyHost']
+			def port = System.properties['http.proxyPort']
+			if(host) {
+				environment 'http_proxy', "http://${host}:${port}"
+			}
+		}
+	}
+	
+	def makeArgs() { args.collect { it.tokenize() }.flatten() }
+}

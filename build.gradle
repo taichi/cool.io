@@ -1,0 +1,24 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+repositories {
+    mavenCentral()
+}
+
+apply from: file('gradle/jruby.gradle')
+
+dependencies {
+    compile 'org.jruby:jruby-complete:${ext.jrubyVersion}'
+    testCompile "junit:junit:4.11"
+}
+
+sourceCompatibility = targetCompatibility = 1.8
+
+eclipse {
+	classpath {
+		containers = [
+			'org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8'
+		]
+	}
+}
+
