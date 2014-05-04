@@ -6,10 +6,6 @@ buildscript {
 	dependencies { gradleApi() }
 }
 
-ext {
-	jrubyVersion = "1.7.12"
-}
-
 task downloadJRuby(group:'JRuby') {
 	doFirst {
 		file("$buildDir").mkdirs()

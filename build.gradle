@@ -5,10 +5,14 @@ repositories {
     mavenCentral()
 }
 
+ext {
+	jrubyVersion = "1.7.12"
+}
+
 apply from: file('gradle/jruby.gradle')
 
 dependencies {
-    compile 'org.jruby:jruby-complete:${ext.jrubyVersion}'
+    compile "org.jruby:jruby-complete:${jrubyVersion}"
     testCompile "junit:junit:4.11"
 }
 
