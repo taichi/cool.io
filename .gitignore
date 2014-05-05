@@ -28,6 +28,7 @@ conftest.dSYM
 ## JRuby
 .jruby
 *.lock
+lib/*.jar
 
 ## Gradle
 build
@@ -38,3 +39,4 @@ gradle.properties
 .project
 .classpath
 .settings
+/bin

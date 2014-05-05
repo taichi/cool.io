@@ -16,6 +16,17 @@ dependencies {
     testCompile "junit:junit:4.11"
 }
 
+sourceSets {
+	main {
+		java.srcDir 'ext/cool.io'
+		resources.srcDir 'ext/cool.io'
+	}
+	test {
+		java.srcDir 'spec'
+		resources.srcDir 'spec'
+	}
+}
+
 sourceCompatibility = targetCompatibility = 1.8
 
 eclipse {
