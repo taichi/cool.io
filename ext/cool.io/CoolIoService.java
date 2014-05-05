@@ -1,3 +1,4 @@
+import io.cool.IOBuffer;
 import io.cool.Loop;
 import io.cool.Watcher;
 
@@ -13,6 +14,7 @@ public class CoolIoService implements BasicLibraryService {
 
 	@Override
 	public boolean basicLoad(Ruby runtime) throws IOException {
+		IOBuffer.define(runtime);
 		Loop.define(runtime);
 		Watcher.define(runtime);
 
