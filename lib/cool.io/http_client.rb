@@ -5,6 +5,8 @@
 # See file LICENSE for details
 #++
 
+unless defined?(JRUBY_VERSION) # JRuby not support this feature
+
 require "cool.io/custom_require"
 cool_require 'http11_client'
 
@@ -427,4 +429,6 @@ module Coolio
       false
     end
   end
+end
+
 end

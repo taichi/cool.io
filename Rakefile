@@ -20,39 +20,48 @@ Rake::RDocTask.new do |rdoc|
   rdoc.rdoc_files.include('lib/**/*.rb')
 end
 
-require 'rake/extensiontask'
-
 spec = eval(File.read("cool.io.gemspec"))
 
-def configure_cross_compilation(ext)
-  unless RUBY_PLATFORM =~ /mswin|mingw/
-    ext.cross_compile = true
-    ext.cross_platform = 'i386-mingw32'#['i386-mswin32-60', 'i386-mingw32']
+if defined? JRUBY_VERSION
+  require "rake/javaextensiontask"
+
+  Rake::JavaExtensionTask.new("cool_io", spec) do |ext|
+    ext.ext_dir = 'ext/cool.io'
+    ext.source_version = 1.8
+    ext.target_version = 1.8
   end
-end
+else
+  require 'rake/extensiontask'
 
-Rake::ExtensionTask.new('iobuffer_ext', spec) do |ext|
-  ext.ext_dir = 'ext/iobuffer'
-  configure_cross_compilation(ext)
-end
+  def configure_cross_compilation(ext)
+    unless RUBY_PLATFORM =~ /mswin|mingw/
+      ext.cross_compile = true
+      ext.cross_platform = 'i386-mingw32'#['i386-mswin32-60', 'i386-mingw32']
+    end
+  end
+  Rake::ExtensionTask.new('iobuffer_ext', spec) do |ext|
+    ext.ext_dir = 'ext/iobuffer'
+    configure_cross_compilation(ext)
+  end
 
-Rake::ExtensionTask.new('http11_client', spec) do |ext|
-  ext.ext_dir = 'ext/http11_client'
-  configure_cross_compilation(ext)
-end
+  Rake::ExtensionTask.new('http11_client', spec) do |ext|
+    ext.ext_dir = 'ext/http11_client'
+    configure_cross_compilation(ext)
+  end
 
-Rake::ExtensionTask.new('cool.io_ext', spec) do |ext|
-  ext.ext_dir = 'ext/cool.io'
-  configure_cross_compilation(ext)
-end
+  Rake::ExtensionTask.new('cool.io_ext', spec) do |ext|
+    ext.ext_dir = 'ext/cool.io'
+    configure_cross_compilation(ext)
+  end
 
-# Rebuild parser Ragel
-task :http11_parser do
-  Dir.chdir "ext/http11_client" do
-    target = "http11_parser.c"
-    File.unlink target if File.exist? target
-    sh "ragel http11_parser.rl | rlgen-cd -G2 -o #{target}"
-    raise "Failed to build C source" unless File.exist? target
+  # Rebuild parser Ragel
+  task :http11_parser do
+    Dir.chdir "ext/http11_client" do
+      target = "http11_parser.c"
+      File.unlink target if File.exist? target
+      sh "ragel http11_parser.rl | rlgen-cd -G2 -o #{target}"
+      raise "Failed to build C source" unless File.exist? target
+    end
   end
 end
 

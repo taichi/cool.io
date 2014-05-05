@@ -5,9 +5,14 @@
 #++
 
 require "cool.io/version"
-require "cool.io/custom_require"
-cool_require "iobuffer_ext"
-cool_require "cool.io_ext"
+
+if defined?(JRUBY_VERSION)
+  require "cool_io"
+else
+  require "cool.io/custom_require"
+  cool_require "iobuffer_ext"
+  cool_require "cool.io_ext"
+end
 
 require "cool.io/loop"
 require "cool.io/meta"

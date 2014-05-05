@@ -49,6 +49,11 @@ task rake(type: JRubyTask) {
 	args << "rake -T"
 }
 
+task rakeCompile(type: JRubyTask) {
+	mustRunAfter extractJRuby
+	args << 'rake compile'
+}
+
 task rakeSpec(type: JRubyTask) {
 	mustRunAfter extractJRuby
 	args << 'rake spec'
