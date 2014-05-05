@@ -5,7 +5,6 @@ import java.io.IOException;
 import org.jruby.Ruby;
 import org.jruby.RubyClass;
 import org.jruby.RubyFixnum;
-import org.jruby.RubyModule;
 import org.jruby.RubyNumeric;
 import org.jruby.RubyObject;
 import org.jruby.anno.JRubyMethod;
@@ -21,12 +20,7 @@ public class Loop extends RubyObject {
 	private static final long serialVersionUID = 2379379965441404573L;
 
 	public static void define(Ruby runtime) throws IOException {
-		RubyModule coolio = runtime.defineModule("Coolio");
-
-		RubyClass loop = coolio.defineClassUnder("Loop", runtime.getObject(),
-				Loop::new);
-		loop.defineAnnotatedMethods(Loop.class);
-
+		Utils.defineClass(runtime, Loop.class, Loop::new);
 		// TODO
 	}
 
