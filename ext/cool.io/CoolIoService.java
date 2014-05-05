@@ -1,4 +1,4 @@
-import io.cool.Watchers;
+import io.cool.Watcher;
 
 import java.io.IOException;
 
@@ -12,7 +12,8 @@ public class CoolIoService implements BasicLibraryService {
 
 	@Override
 	public boolean basicLoad(Ruby runtime) throws IOException {
-		Watchers.define(runtime);
+		Watcher.define(runtime);
+
 		return true;
 	}
 }
