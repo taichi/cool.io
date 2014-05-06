@@ -18,6 +18,7 @@ Gem::Specification.new do |s|
   s.extensions = ["ext/cool.io/extconf.rb", "ext/http11_client/extconf.rb", "ext/iobuffer/extconf.rb"]
 
   s.files         = `git ls-files`.split("\n")
+  s.files        += ['lib/cool_io.jar'] if defined?(JRUBY_VERSION)
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   s.require_paths = ["lib"]

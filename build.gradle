@@ -13,6 +13,7 @@ apply from: file('gradle/jruby.gradle')
 
 dependencies {
     compile "org.jruby:jruby-complete:${jrubyVersion}"
+    compile 'io.netty:netty-transport:4.0.19.Final'
     testCompile "junit:junit:4.11"
 }
 
@@ -25,6 +26,15 @@ sourceSets {
 		java.srcDir 'spec'
 		resources.srcDir 'spec'
 	}
+}
+
+jar {
+	archiveName = "cool_io.jar"
+	destinationDir = file("lib/")
+	from(configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }) {
+		include "io/netty/**"
+	}
+	excludes = ["*.rb", "*.c", "*.h"]
 }
 
 sourceCompatibility = targetCompatibility = 1.8

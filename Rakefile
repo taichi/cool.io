@@ -23,13 +23,16 @@ end
 spec = eval(File.read("cool.io.gemspec"))
 
 if defined? JRUBY_VERSION
-  require "rake/javaextensiontask"
-
-  Rake::JavaExtensionTask.new("cool_io", spec) do |ext|
-    ext.ext_dir = 'ext/cool.io'
-    ext.source_version = 1.8
-    ext.target_version = 1.8
+  task :javaclean do
+    sh "gradlew clean"
+    rm_rf "lib/cool_io.jar"
+    rm_rf "build"
   end
+  task :compile do
+    sh "gradlew jar"
+  end
+  task :build => [:compile]
+  task :clean => [:javaclean]
 else
   require 'rake/extensiontask'
 
