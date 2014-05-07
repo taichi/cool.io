@@ -1,0 +1,15 @@
+
+sourceCompatibility = targetCompatibility = 1.8
+
+tasks.withType(AbstractCompile) each { it.options.encoding = 'UTF-8' }
+
+sourceSets {
+	main {
+		java.srcDir 'ext/cool.io'
+		resources.srcDir 'ext/cool.io'
+	}
+	test {
+		java.srcDir 'spec'
+		resources.srcDir 'spec'
+	}
+}

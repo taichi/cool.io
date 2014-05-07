@@ -1,5 +1,4 @@
 apply plugin: 'java'
-apply plugin: 'eclipse'
 
 repositories {
     mavenCentral()
@@ -17,33 +16,16 @@ dependencies {
     testCompile "junit:junit:4.11"
 }
 
-sourceSets {
-	main {
-		java.srcDir 'ext/cool.io'
-		resources.srcDir 'ext/cool.io'
-	}
-	test {
-		java.srcDir 'spec'
-		resources.srcDir 'spec'
-	}
-}
+apply from: file('gradle/convention.gradle')
 
 jar {
 	archiveName = "cool_io.jar"
 	destinationDir = file("lib/")
+	// TODO fatjarにしてるけど、これで良いのかな？gemspecにちゃんと書いた方が良いのかな。
 	from(configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }) {
 		include "io/netty/**"
 	}
 	excludes = ["*.rb", "*.c", "*.h"]
 }
 
-sourceCompatibility = targetCompatibility = 1.8
-
-eclipse {
-	classpath {
-		containers = [
-			'org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8'
-		]
-	}
-}
-
+apply from: file('gradle/ide.gradle')
