@@ -24,7 +24,7 @@ public class Watcher extends RubyObject {
 
 	private static final long serialVersionUID = -7312205638559031598L;
 
-	public static void define(Ruby runtime) throws IOException {
+	public static void load(Ruby runtime) throws IOException {
 		RubyClass watcher = Utils.defineClass(runtime, Watcher.class,
 				Watcher::new);
 		// share groups all of IOWatchers.

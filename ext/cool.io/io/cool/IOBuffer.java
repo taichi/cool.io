@@ -13,7 +13,7 @@ public class IOBuffer extends RubyObject {
 
 	private static final long serialVersionUID = -4361435260503933077L;
 
-	public static void define(Ruby runtime) throws IOException {
+	public static void load(Ruby runtime) throws IOException {
 		runtime.getIO().defineClassUnder("Buffer", runtime.getObject(),
 				IOBuffer::new);
 	}

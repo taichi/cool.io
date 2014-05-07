@@ -26,7 +26,7 @@ public class Loop extends RubyObject {
 	private static final Logger LOG = LoggerFactory.getLogger(Loop.class
 			.getName());
 
-	public static void define(Ruby runtime) throws IOException {
+	public static void load(Ruby runtime) throws IOException {
 		MultithreadEventLoopGroup group = new LocalEventLoopGroup(1);
 		Utils.defineClass(runtime, Loop.class, (r, rc) -> {
 			return new Loop(r, rc, group);

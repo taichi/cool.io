@@ -5,10 +5,11 @@
 #++
 
 require "cool.io/version"
+require "cool.io/detect"
 
-if defined?(JRUBY_VERSION)
-  require "cool_io"
-else
+require "cool_io" if jruby?
+
+unless jruby?
   require "cool.io/custom_require"
   cool_require "iobuffer_ext"
   cool_require "cool.io_ext"
@@ -20,11 +21,11 @@ require "cool.io/io"
 require "cool.io/iowatcher"
 require "cool.io/timer_watcher"
 require "cool.io/async_watcher"
-require "cool.io/listener"
+require "cool.io/listener" unless jruby?
 require "cool.io/dns_resolver"
-require "cool.io/socket"
-require "cool.io/server"
-require "cool.io/http_client"
+require "cool.io/socket" unless jruby?
+require "cool.io/server" unless jruby?
+require "cool.io/http_client" unless jruby?
 require "cool.io/dsl"
 
 module Coolio

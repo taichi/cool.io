@@ -1,5 +1,7 @@
 import io.cool.IOBuffer;
 import io.cool.Loop;
+import io.cool.Server;
+import io.cool.Socket;
 import io.cool.Watcher;
 
 import java.io.IOException;
@@ -14,9 +16,11 @@ public class CoolIoService implements BasicLibraryService {
 
 	@Override
 	public boolean basicLoad(Ruby runtime) throws IOException {
-		IOBuffer.define(runtime);
-		Loop.define(runtime);
-		Watcher.define(runtime);
+		IOBuffer.load(runtime);
+		Loop.load(runtime);
+		Watcher.load(runtime);
+		Server.load(runtime);
+		Socket.load(runtime);
 
 		return true;
 	}

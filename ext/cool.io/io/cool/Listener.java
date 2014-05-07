@@ -17,6 +17,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.AttributeKey;
 
 import java.util.HashMap;
@@ -32,6 +33,9 @@ import org.jruby.util.log.Logger;
 import org.jruby.util.log.LoggerFactory;
 
 /**
+ * listener.rb on JRuby <br/>
+ * UNIXListener is not support
+ * 
  * @author taichi
  */
 public class Listener extends IOWatcher {
@@ -42,13 +46,17 @@ public class Listener extends IOWatcher {
 		super(runtime, metaClass, group);
 	}
 
-	void dispatchOnConnection(SocketChannel socket) {
-		// SocketChannel を RubyObjectのSocket的なアレに変換する。
-		IRubyObject sockRO = null;
-		// Channelは既にnetty管理下にあるので、attach的な事はいらない。
-		// 引渡されてきているCoolio::Socket的なオブジェクトの生成はやらないといけない。
-		// on_connectionはインターナルなイベントなので通知しなくていいかもしれない。
-		this.callMethod("on_connection");
+	IRubyObject makeCoolioSocket(SocketChannel socket) {
+		if (socket instanceof NioSocketChannel) {
+			NioSocketChannel nsc = (NioSocketChannel) socket;
+			// SocketChannel を RubyObjectのSocket的なアレに変換する。
+			IRubyObject sockRO = null;
+			// Channelは既にnetty管理下にあるので、attach的な事はいらない。
+			// 引渡されてきているCoolio::Socket的なオブジェクトの生成はやらないといけない。
+			// on_connectionはインターナルなイベントなので通知しなくていいかもしれない。
+			// this.callMethod("on_connection");
+		}
+		throw new IllegalArgumentException("Must be NioSocketChannel");
 	}
 
 	@JRubyMethod(name = "on_connection")
