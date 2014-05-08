@@ -10,6 +10,7 @@ import org.jruby.RubyObject;
  * @author taichi
  */
 public class IOBuffer extends RubyObject {
+	// TODO purge this class
 
 	private static final long serialVersionUID = -4361435260503933077L;
 
@@ -20,8 +21,6 @@ public class IOBuffer extends RubyObject {
 
 	public IOBuffer(Ruby runtime, RubyClass metaClass) {
 		super(runtime, metaClass);
-
-		// TODO
 	}
 
 }
