@@ -30,13 +30,16 @@ public class Watcher extends RubyObject {
 				Watcher::new);
 		// share groups all of IOWatchers.
 		NioEventLoopGroup group = Coolio.IO_EVENT_LOOP;
-		// TODO how to shutdown groups ?
-		// runtime.addFinalizer(() -> group.shutdownGracefully());
 		RubyClass iowatcher = Utils.defineClass(runtime, watcher,
 				IOWatcher.class, (r, rc) -> new IOWatcher(r, rc, group));
 		RubyClass listener = Utils.defineClass(runtime, iowatcher,
 				Listener.class, (r, rc) -> new Listener(r, rc, group));
 		listener.defineAnnotatedConstants(Listener.class);
+		RubyClass server = Utils.defineClass(runtime, listener, Server.class, (
+				r, rc) -> new Server(r, rc, group));
+		Utils.defineClass(runtime, server, Server.TCPServer.class,
+				(r, rc) -> new Server.TCPServer(r, rc, group));
+
 		Utils.defineClass(runtime, watcher, StatWatcher.class, StatWatcher::new);
 		Utils.defineClass(runtime, watcher, TimerWatcher.class,
 				TimerWatcher::new);

@@ -33,11 +33,9 @@ def simple
   puts s
   loop = Coolio::Loop.new
   loop.attach(s)
-  while true
-  end
 end
 
-simple()
+#simple()
 
 def send_data(data)
   io = TCPSocket.new('127.0.0.1', PORT)
@@ -75,7 +73,7 @@ end
 
 def test_run(data = nil)
   reactor = Coolio::Loop.new
-  server = Cool.io::TCPServer.new(HOST, PORT, MyConnection, method(:on_message))
+  server = Coolio::TCPServer.new(HOST, PORT, MyConnection, method(:on_message))
   reactor.attach(server)
   thread = Thread.new { reactor.run(1) }
   send_data(data) if data
@@ -97,3 +95,9 @@ end
 #loop = Cool.io::Loop.new
 #loop.attach(s)
 #loop.run()
+
+def server
+  require "socket"
+  server = Coolio::Server.new(TCPServer.new(HOST,PORT), MyConnection, method(:on_message))
+end
+server()

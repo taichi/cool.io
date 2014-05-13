@@ -54,7 +54,7 @@ public class Listener extends IOWatcher {
 	@JRubyConstant
 	public static final int DEFAULT_BACKLOG = 1024;
 
-	// @JRubyMethod
+	@JRubyMethod
 	public IRubyObject listen(IRubyObject backlog) {
 		LOG.info("listen backlog={}", backlog);
 		this.io.callMethod("listen", backlog);
@@ -115,31 +115,26 @@ public class Listener extends IOWatcher {
 		// TODO support per connection Options and Attributes.
 		final Entry<ChannelOption<?>, Object>[] currentChildOptions = new Entry[0];
 		final Entry<AttributeKey<?>, Object>[] currentChildAttrs = new Entry[0];
-		cp.addLast(new LoggingHandler(LogLevel.INFO),
-				new ChannelInitializer<Channel>() {
-					@Override
-					public void initChannel(Channel ch) throws Exception {
-						LOG.info("initChannel {}", ch);
-						ch.pipeline()
-								.addLast(
-										new Acceptor(
-												group,
-												new ChannelInitializer<SocketChannel>() {
-													@Override
-													protected void initChannel(
-															SocketChannel ch)
-															throws Exception {
-														LOG.info("initChannel with accept");
-														ch.pipeline()
-																.addLast(
-																		new ServerHandler());
-													}
-												}, currentChildOptions,
-												currentChildAttrs));
-						// Nettyがacceptするので、Listener#on_readable は呼び出さない。
-						// dispatchOnReadable();
-					}
-				});
+		cp.addLast(new LoggingHandler(LogLevel.INFO));
+		cp.addLast(new ChannelInitializer<Channel>() {
+			@Override
+			public void initChannel(Channel ch) throws Exception {
+				LOG.info("initChannel {}", ch);
+				ch.pipeline().addLast(
+						new Acceptor(group,
+								new ChannelInitializer<SocketChannel>() {
+									@Override
+									protected void initChannel(SocketChannel ch)
+											throws Exception {
+										LOG.info("initChannel with accept");
+										ch.pipeline().addLast(
+												new ServerHandler());
+									}
+								}, currentChildOptions, currentChildAttrs));
+				// Nettyがacceptするので、Listener#on_readable は呼び出さない。
+				// dispatchOnReadable();
+			}
+		});
 		return channel;
 	}
 

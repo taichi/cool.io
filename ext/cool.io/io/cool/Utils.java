@@ -20,9 +20,13 @@ public interface Utils {
 		return defineClass(runtime, runtime.getObject(), cls, oa);
 	}
 
+	static RubyModule getModule(Ruby runtime) {
+		return runtime.getModule("Coolio");
+	}
+
 	static RubyClass defineClass(Ruby runtime, RubyClass parent, Class<?> cls,
 			ObjectAllocator oa) {
-		RubyModule coolio = runtime.getModule("Coolio");
+		RubyModule coolio = getModule(runtime);
 		RubyClass rc = coolio.defineClassUnder(cls.getSimpleName(), parent, oa);
 		rc.defineAnnotatedMethods(cls);
 		return rc;
