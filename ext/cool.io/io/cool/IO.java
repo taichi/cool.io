@@ -40,7 +40,7 @@ public class IO extends RubyObject {
 		if (io instanceof RubyIO) {
 			this.io = (RubyIO) io;
 		} else {
-			throw new IllegalArgumentException("must be RubyIO");
+			throw getRuntime().newArgumentError("must be RubyIO");
 		}
 		return getRuntime().getNil();
 	}

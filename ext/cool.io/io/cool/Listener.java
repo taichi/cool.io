@@ -80,7 +80,7 @@ public class Listener extends IOWatcher {
 			// on_connectionはインターナルなイベントなので通知しなくていいかもしれない。
 			// this.callMethod("on_connection");
 		}
-		throw new IllegalArgumentException("Must be NioSocketChannel");
+		throw getRuntime().newArgumentError("Must be NioSocketChannel");
 	}
 
 	@JRubyMethod(name = "on_connection")
@@ -100,7 +100,7 @@ public class Listener extends IOWatcher {
 		if (ch instanceof java.nio.channels.DatagramChannel) {
 			// TODO not implemented
 		}
-		throw new IllegalArgumentException("Unsupported channel Type " + ch);
+		throw getRuntime().newArgumentError("Unsupported channel Type " + ch);
 	}
 
 	@SuppressWarnings("unchecked")
