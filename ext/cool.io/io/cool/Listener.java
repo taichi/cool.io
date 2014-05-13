@@ -18,6 +18,8 @@ import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.AttributeKey;
 
 import java.util.HashMap;
@@ -27,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.jruby.Ruby;
 import org.jruby.RubyClass;
+import org.jruby.anno.JRubyConstant;
 import org.jruby.anno.JRubyMethod;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.util.log.Logger;
@@ -40,17 +43,38 @@ import org.jruby.util.log.LoggerFactory;
  */
 public class Listener extends IOWatcher {
 
+	static final Logger LOG = LoggerFactory.getLogger(Listener.class.getName());
+
 	private static final long serialVersionUID = -1592741627890256654L;
 
 	public Listener(Ruby runtime, RubyClass metaClass, NioEventLoopGroup group) {
 		super(runtime, metaClass, group);
 	}
 
+	@JRubyConstant
+	public static final int DEFAULT_BACKLOG = 1024;
+
+	// @JRubyMethod
+	public IRubyObject listen(IRubyObject backlog) {
+		LOG.info("listen backlog={}", backlog);
+		this.io.callMethod("listen", backlog);
+		return getRuntime().getNil();
+	}
+
+	@JRubyMethod
+	public IRubyObject close() {
+		LOG.info("close");
+		if (getRuntime().getTrue().equals(isAttached())) {
+			detach();
+		}
+		return getRuntime().getNil();
+	}
+
 	IRubyObject makeCoolioSocket(SocketChannel socket) {
 		if (socket instanceof NioSocketChannel) {
-			NioSocketChannel nsc = (NioSocketChannel) socket;
+			// NioSocketChannel nsc = (NioSocketChannel) socket;
 			// SocketChannel を RubyObjectのSocket的なアレに変換する。
-			IRubyObject sockRO = null;
+			// IRubyObject sockRO = null;
 			// Channelは既にnetty管理下にあるので、attach的な事はいらない。
 			// 引渡されてきているCoolio::Socket的なオブジェクトの生成はやらないといけない。
 			// on_connectionはインターナルなイベントなので通知しなくていいかもしれない。
@@ -91,25 +115,31 @@ public class Listener extends IOWatcher {
 		// TODO support per connection Options and Attributes.
 		final Entry<ChannelOption<?>, Object>[] currentChildOptions = new Entry[0];
 		final Entry<AttributeKey<?>, Object>[] currentChildAttrs = new Entry[0];
-		cp.addLast(new ChannelInitializer<Channel>() {
-			@Override
-			public void initChannel(Channel ch) throws Exception {
-				LOG.info("initChannel {}", ch);
-				ch.pipeline().addLast(
-						new Acceptor(group,
-								new ChannelInitializer<SocketChannel>() {
-									@Override
-									protected void initChannel(SocketChannel ch)
-											throws Exception {
-										LOG.info("initChannel with accept");
-										ch.pipeline().addLast(
-												new ServerHandler());
-									}
-								}, currentChildOptions, currentChildAttrs));
-				// Nettyがacceptするので、Listener#on_readable は呼び出さない。
-				// dispatchOnReadable();
-			}
-		});
+		cp.addLast(new LoggingHandler(LogLevel.INFO),
+				new ChannelInitializer<Channel>() {
+					@Override
+					public void initChannel(Channel ch) throws Exception {
+						LOG.info("initChannel {}", ch);
+						ch.pipeline()
+								.addLast(
+										new Acceptor(
+												group,
+												new ChannelInitializer<SocketChannel>() {
+													@Override
+													protected void initChannel(
+															SocketChannel ch)
+															throws Exception {
+														LOG.info("initChannel with accept");
+														ch.pipeline()
+																.addLast(
+																		new ServerHandler());
+													}
+												}, currentChildOptions,
+												currentChildAttrs));
+						// Nettyがacceptするので、Listener#on_readable は呼び出さない。
+						// dispatchOnReadable();
+					}
+				});
 		return channel;
 	}
 
@@ -209,7 +239,7 @@ public class Listener extends IOWatcher {
 		@Override
 		public void channelRead(ChannelHandlerContext ctx, Object msg)
 				throws Exception {
-			// LOG.info("{} {}", msg, msg.getClass());
+			LOG.info("{} {}", msg, msg.getClass());
 			ByteBuf buf = (ByteBuf) msg;
 			ctx.write(msg);
 		}

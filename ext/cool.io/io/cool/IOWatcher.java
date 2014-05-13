@@ -26,6 +26,7 @@ public class IOWatcher extends Watcher {
 	final NioEventLoopGroup group;
 
 	RubyIO io;
+	Channel channel;
 
 	public IOWatcher(Ruby runtime, RubyClass metaClass, NioEventLoopGroup group) {
 		super(runtime, metaClass);
@@ -75,7 +76,7 @@ public class IOWatcher extends Watcher {
 			Channel channel = translate((Loop) loop);
 			register(channel);
 		} else {
-			throw new IllegalArgumentException("Must be io.cool.Loop");
+			throw new IllegalArgumentException("loop must be Coolio::Loop");
 		}
 		return this;
 	}
@@ -98,5 +99,26 @@ public class IOWatcher extends Watcher {
 			}
 		}
 		future.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+		this.channel = channel;
+	}
+
+	@Override
+	public IRubyObject detach() {
+		LOG.info("detach");
+		super.detach();
+		channel.close().awaitUninterruptibly();
+		this.channel = null;
+		LOG.info("detach {}", this);
+		return this;
+	}
+
+	@Override
+	public IRubyObject isAttached() {
+		IRubyObject t = getRuntime().getTrue();
+		IRubyObject f = getRuntime().getFalse();
+		if (t.equals(super.isAttached())) {
+			return this.channel == null ? f : t;
+		}
+		return f;
 	}
 }

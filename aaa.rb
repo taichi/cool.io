@@ -17,12 +17,83 @@ class EchoServerConnection < Cool.io::TCPSocket
   end
 end
 
+@data = ""
+def on_message(data)
+  @data = data
+end
 
-s = Coolio::TCPServer.new("localhost", 8080, EchoServerConnection)
-s.listen(10)
-puts s
+
+TIMEOUT = 5.110
+HOST = "localhost"
+PORT = 8080
+
+def simple
+  # s = Coolio::TCPServer.new("localhost", 8080)
+  s = Cool.io::TCPServer.new(HOST, PORT, EchoServerConnection, method(:on_message))
+  puts s
+  loop = Coolio::Loop.new
+  loop.attach(s)
+  while true
+  end
+end
+
+simple()
+
+def send_data(data)
+  io = TCPSocket.new('127.0.0.1', PORT)
+  begin
+    io.write data
+    #io.read
+    sleep 1
+  ensure
+    io.close
+  end
+end
+
+class MyConnection < Coolio::Socket
+  attr_accessor :data, :connected, :closed
+
+  def initialize(io, on_message)
+    super(io)
+    @on_message = on_message
+  end
+
+  def on_connect
+    @connected = true
+  end
+
+  def on_close
+    @closed = true
+  end
+
+  def on_read(data)
+    @on_message.call(data)
+  end
+end
 
 
-loop = Cool.io::Loop.new
-loop.attach(s)
-loop.run()
+
+def test_run(data = nil)
+  reactor = Coolio::Loop.new
+  server = Cool.io::TCPServer.new(HOST, PORT, MyConnection, method(:on_message))
+  reactor.attach(server)
+  thread = Thread.new { reactor.run(1) }
+  send_data(data) if data
+  sleep TIMEOUT
+  reactor.stop
+  server.detach
+#  send_data('') # to leave from blocking loop
+  thread.join
+  @data
+ensure
+  server.close
+  Coolio.shutdown
+end
+
+#if test_run("hello") == "hello"
+# puts "OK"
+#end
+
+#loop = Cool.io::Loop.new
+#loop.attach(s)
+#loop.run()

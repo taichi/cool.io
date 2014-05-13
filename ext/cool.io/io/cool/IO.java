@@ -35,7 +35,7 @@ public class IO extends RubyObject {
 						r.newSymbol("on_close") });
 	}
 
-	@JRubyMethod
+	@JRubyMethod(required = 1)
 	public IRubyObject initialize(IRubyObject io) {
 		if (io instanceof RubyIO) {
 			this.io = (RubyIO) io;
@@ -45,7 +45,7 @@ public class IO extends RubyObject {
 		return getRuntime().getNil();
 	}
 
-	@JRubyMethod
+	@JRubyMethod(required = 1)
 	public IRubyObject attach(IRubyObject loop) {
 
 		return this;
@@ -71,7 +71,7 @@ public class IO extends RubyObject {
 		return this;
 	}
 
-	@JRubyMethod
+	@JRubyMethod(required = 1)
 	public IRubyObject write(IRubyObject data) {
 		int size = 0;
 		// TODO not implemented

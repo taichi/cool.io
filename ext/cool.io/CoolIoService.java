@@ -1,3 +1,4 @@
+import io.cool.Coolio;
 import io.cool.IO;
 import io.cool.IOBuffer;
 import io.cool.Loop;
@@ -16,6 +17,8 @@ public class CoolIoService implements BasicLibraryService {
 
 	@Override
 	public boolean basicLoad(Ruby runtime) throws IOException {
+		Coolio.load(runtime);
+
 		IOBuffer.load(runtime);
 		IO.load(runtime);
 		Loop.load(runtime);

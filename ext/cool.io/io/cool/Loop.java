@@ -1,7 +1,6 @@
 package io.cool;
 
 import io.netty.channel.MultithreadEventLoopGroup;
-import io.netty.channel.local.LocalEventLoopGroup;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -27,7 +26,7 @@ public class Loop extends RubyObject {
 			.getName());
 
 	public static void load(Ruby runtime) throws IOException {
-		MultithreadEventLoopGroup group = new LocalEventLoopGroup(1);
+		MultithreadEventLoopGroup group = Coolio.LOCAL_EVENT_LOOP;
 		Utils.defineClass(runtime, Loop.class, (r, rc) -> {
 			return new Loop(r, rc, group);
 		});
@@ -41,7 +40,7 @@ public class Loop extends RubyObject {
 		this.group = group;
 	}
 
-	@JRubyMethod(name = "ev_loop_new", visibility = Visibility.PRIVATE)
+	@JRubyMethod(name = "ev_loop_new", visibility = Visibility.PRIVATE, required = 1)
 	public IRubyObject startLoop(IRubyObject flags) {
 		if (getRuntime().isDebug()) {
 			int f = RubyNumeric.fix2int(flags);
@@ -52,17 +51,24 @@ public class Loop extends RubyObject {
 	}
 
 	@JRubyMethod(name = "run_once")
+	public IRubyObject runOnce() {
+		return runOnce(RubyNumeric.dbl2num(getRuntime(), 0.5));
+	}
+
+	@JRubyMethod(name = "run_once")
 	public IRubyObject runOnce(IRubyObject timeout) {
-		// LOG.info("{}", timeout.isNil());
+		LOG.info("run_once {}", timeout);
 		// TODO このタイムアウトを使って空のCallbackを呼んでもらう理由がよくわからぬ。
 		// https://github.com/tarcieri/cool.io/commit/7453ed1ff1e20de4c99002e24407fcacdb0ad081
 
 		// Loop.rbのrunメソッドによるwhileループがCPUサイクルを食いすぎるので大人しくさせる為にスレッドを適宜止める。
 		long t = 500;// 特に根拠のない数字。このスレッドでは何もしないのでずっと止まってて貰っても良いのでは？
-		if (timeout != null && timeout.isNil() == false) {
-			t = Math.round(RubyNumeric.num2dbl(timeout) * 1000);
+		if (timeout.isNil() == false) {
+			double d = RubyNumeric.num2dbl(timeout);
+			if (0 < d) {
+				t = Math.round(d * 1000);
+			}
 		}
-		// for deadlock detection.
 		group.schedule(() -> {
 		}, t, TimeUnit.MILLISECONDS).awaitUninterruptibly();
 		return getRuntime().getNil();
