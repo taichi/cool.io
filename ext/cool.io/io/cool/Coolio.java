@@ -32,7 +32,7 @@ public class Coolio {
 		coolio.defineAnnotatedMethods(Coolio.class);
 	}
 
-	@JRubyMethod(meta = true)
+	@JRubyMethod(module = true)
 	public static void shutdown(ThreadContext context, IRubyObject self) {
 		LOG.info("shutdown");
 		IO_EVENT_LOOP.shutdownGracefully();
