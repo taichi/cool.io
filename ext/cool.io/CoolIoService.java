@@ -22,7 +22,7 @@ public class CoolIoService implements BasicLibraryService {
 		IOBuffer.load(runtime);
 		IO.load(runtime);
 		Loop.load(runtime);
-		Watcher.load(runtime);
+		Watcher.load(runtime); // load servers
 		Socket.load(runtime);
 
 		return true;

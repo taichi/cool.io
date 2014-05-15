@@ -11,7 +11,7 @@ module Coolio
     # connections is a Socket, but any subclass of IOWatcher is acceptable.
     def initialize(listen_socket, klass = Socket, *args, &block)
       # Ensure the provided class responds to attach
-      unless klass.allocate.is_a? IO
+      unless klass.allocate.is_a? Socket
         raise ArgumentError, "can't convert #{klass} to Coolio::IO"
       end
 
@@ -40,7 +40,7 @@ module Coolio
       connection = @klass.new(socket, *@args).attach(evloop)
       connection.__send__(:on_connect)
       @block.call(connection) if @block
-    end
+    end unless jruby?
   end
 
   # TCP server class.  Listens on the specified host and port and creates

@@ -18,10 +18,10 @@ import org.jruby.util.log.LoggerFactory;
  */
 public class IOWatcher extends Watcher {
 
+	private static final long serialVersionUID = -9155305357984430840L;
+
 	static final Logger LOG = LoggerFactory
 			.getLogger(IOWatcher.class.getName());
-
-	private static final long serialVersionUID = 8955411821845834738L;
 
 	final NioEventLoopGroup group;
 
@@ -76,16 +76,14 @@ public class IOWatcher extends Watcher {
 			Channel channel = translate((Loop) loop);
 			register(channel);
 		} else {
-			throw new IllegalArgumentException("loop must be Coolio::Loop");
+			throw getRuntime().newArgumentError("must be Coolio::Loop");
 		}
 		return this;
 	}
 
-	Channel translate(Loop loop) {
-		java.nio.channels.Channel ch = this.io.getChannel();
-		LOG.info("{}", ch);
-		throw new UnsupportedOperationException("Unsupported Channel Type "
-				+ ch);
+	protected Channel translate(Loop loop) {
+		throw getRuntime().newNoMethodError("IOWatcher must subclass",
+				"translate", loop);
 	}
 
 	// register FD to Selector

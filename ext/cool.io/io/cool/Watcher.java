@@ -35,10 +35,8 @@ public class Watcher extends RubyObject {
 		RubyClass listener = Utils.defineClass(runtime, iowatcher,
 				Listener.class, (r, rc) -> new Listener(r, rc, group));
 		listener.defineAnnotatedConstants(Listener.class);
-		RubyClass server = Utils.defineClass(runtime, listener, Server.class, (
-				r, rc) -> new Server(r, rc, group));
-		Utils.defineClass(runtime, server, Server.TCPServer.class,
-				(r, rc) -> new Server.TCPServer(r, rc, group));
+		Utils.defineClass(runtime, listener, Server.class,
+				(r, rc) -> new Server(r, rc, group));
 
 		Utils.defineClass(runtime, watcher, StatWatcher.class, StatWatcher::new);
 		Utils.defineClass(runtime, watcher, TimerWatcher.class,

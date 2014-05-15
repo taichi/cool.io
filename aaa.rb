@@ -70,7 +70,6 @@ class MyConnection < Coolio::Socket
 end
 
 
-
 def test_run(data = nil)
   reactor = Coolio::Loop.new
   server = Coolio::TCPServer.new(HOST, PORT, MyConnection, method(:on_message))
@@ -83,14 +82,14 @@ def test_run(data = nil)
 #  send_data('') # to leave from blocking loop
   thread.join
   @data
+rescue
+  raise $!
 ensure
-  server.close
+  server.close unless server.nil?
   Coolio.shutdown
 end
 
-#if test_run("hello") == "hello"
-# puts "OK"
-#end
+test_run("hello")
 
 #loop = Cool.io::Loop.new
 #loop.attach(s)
@@ -98,6 +97,10 @@ end
 
 def server
   require "socket"
-  server = Coolio::Server.new(TCPServer.new(HOST,PORT), MyConnection, method(:on_message))
+  server = Coolio::Server.new(TCPServer.new(HOST,PORT), MyConnection, method(:on_message)) do
+    puts "hoge"
+  end
+  sock = TCPSocket.new('127.0.0.1', PORT)
+  server.__send__(:on_connection, sock)
 end
-server()
+#server()

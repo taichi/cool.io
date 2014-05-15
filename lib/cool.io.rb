@@ -24,7 +24,7 @@ require "cool.io/async_watcher"
 require "cool.io/listener" unless jruby?
 require "cool.io/dns_resolver"
 require "cool.io/socket" unless jruby?
-require "cool.io/server" unless jruby?
+require "cool.io/server"
 require "cool.io/http_client" unless jruby?
 require "cool.io/dsl"
 

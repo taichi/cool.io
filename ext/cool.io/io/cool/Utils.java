@@ -24,6 +24,10 @@ public interface Utils {
 		return runtime.getModule("Coolio");
 	}
 
+	static RubyClass getClass(Ruby runtime, String name) {
+		return getModule(runtime).getClass(name);
+	}
+
 	static RubyClass defineClass(Ruby runtime, RubyClass parent, Class<?> cls,
 			ObjectAllocator oa) {
 		RubyModule coolio = getModule(runtime);
