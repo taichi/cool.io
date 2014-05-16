@@ -20,7 +20,8 @@ public class Listener extends IOWatcher {
 
 	private static final long serialVersionUID = -2281643801267613411L;
 
-	static final Logger LOG = LoggerFactory.getLogger(Listener.class.getName());
+	private static final Logger LOG = LoggerFactory.getLogger(Listener.class
+			.getName());
 
 	public Listener(Ruby runtime, RubyClass metaClass, NioEventLoopGroup group) {
 		super(runtime, metaClass, group);

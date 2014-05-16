@@ -7,8 +7,6 @@
 require "cool.io/version"
 require "cool.io/detect"
 
-require "cool_io" if jruby?
-
 unless jruby?
   require "cool.io/custom_require"
   cool_require "iobuffer_ext"
@@ -17,6 +15,7 @@ end
 
 require "cool.io/loop"
 require "cool.io/meta"
+require "cool_io" if jruby?
 require "cool.io/io" unless jruby?
 require "cool.io/iowatcher"
 require "cool.io/timer_watcher"

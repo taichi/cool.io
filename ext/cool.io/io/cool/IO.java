@@ -4,7 +4,6 @@ import org.jruby.Ruby;
 import org.jruby.RubyClass;
 import org.jruby.RubyIO;
 import org.jruby.RubyModule;
-import org.jruby.RubyNumeric;
 import org.jruby.RubyObject;
 import org.jruby.anno.JRubyMethod;
 import org.jruby.runtime.builtin.IRubyObject;
@@ -18,21 +17,26 @@ public class IO extends RubyObject {
 
 	private static final long serialVersionUID = 5960920173752724702L;
 
-	public static void load(Ruby runtime) {
-		Utils.defineClass(runtime, IO.class, IO::new);
-	}
-
-	RubyIO io;
-
-	public IO(Ruby r, RubyClass metaClass) {
-		super(r, metaClass);
-		RubyModule rm = r.getModule("Coolio");
-		metaClass.extend(new IRubyObject[] { rm.getConstant("Meta") });
-		metaClass.callMethod(
+	public static void load(Ruby r) {
+		RubyClass io = Utils.defineClass(r, IO.class, IO::new);
+		RubyModule coolio = Utils.getModule(r);
+		Class<?> cls = IO.class;
+		RubyClass rc = coolio.defineClassUnder(cls.getSimpleName(),
+				r.getObject(), IO::new);
+		io.extend(new IRubyObject[] { coolio.getConstant("Meta") });
+		io.callMethod(
 				"event_callback",
 				new IRubyObject[] { r.newSymbol("on_read"),
 						r.newSymbol("on_write_complete"),
 						r.newSymbol("on_close") });
+		rc.defineAnnotatedMethods(cls);
+
+	}
+
+	RubyIO io;
+
+	public IO(Ruby r, RubyClass rc) {
+		super(r, rc);
 	}
 
 	@JRubyMethod(required = 1)
@@ -47,7 +51,6 @@ public class IO extends RubyObject {
 
 	@JRubyMethod(required = 1)
 	public IRubyObject attach(IRubyObject loop) {
-
 		return this;
 	}
 
@@ -73,9 +76,27 @@ public class IO extends RubyObject {
 
 	@JRubyMethod(required = 1)
 	public IRubyObject write(IRubyObject data) {
-		int size = 0;
-		// TODO not implemented
-		return RubyNumeric.int2fix(getRuntime(), size);
+		return this.io.write(getRuntime().getCurrentContext(), data);
+	}
+
+	@JRubyMethod()
+	public IRubyObject close() {
+		if (io.isClosed() == false) {
+			io.close();
+		}
+		return getRuntime().getNil();
+	}
+
+	public void callOnRead(IRubyObject data) {
+		callMethod("on_read", data);
+	}
+
+	public void callOnWriteComplete() {
+		callMethod("on_write_complete");
+	}
+
+	public void callOnClose() {
+		callMethod("on_close");
 	}
 
 }

@@ -11,19 +11,25 @@ class EchoServerConnection < Cool.io::TCPSocket
   def on_close
     puts "#{remote_addr}:#{remote_port} disconnected"
   end
-
+  
   def on_read(data)
-    write data
+    puts "onRead"
+    puts write data
+  end
+  
+  def on_write_complete
+    puts "write comp!!"
   end
 end
 
 @data = ""
 def on_message(data)
+  puts "onMessage"
   @data = data
 end
 
 
-TIMEOUT = 5.110
+TIMEOUT = 2.110
 HOST = "localhost"
 PORT = 8080
 
@@ -38,13 +44,14 @@ end
 #simple()
 
 def send_data(data)
-  io = TCPSocket.new('127.0.0.1', PORT)
+  sock = TCPSocket.new('127.0.0.1', PORT)
   begin
-    io.write data
-    #io.read
+    sock.write data
+    puts sock.read(5)
     sleep 1
+    puts "REAAAAAAD"
   ensure
-    io.close
+    sock.close
   end
 end
 
@@ -57,14 +64,17 @@ class MyConnection < Coolio::Socket
   end
 
   def on_connect
+    puts "CONNECT !!!!"
     @connected = true
   end
 
   def on_close
+    puts "CLOSED!!!!"
     @closed = true
   end
 
   def on_read(data)
+    puts "ON_READ"
     @on_message.call(data)
   end
 end
@@ -72,7 +82,7 @@ end
 
 def test_run(data = nil)
   reactor = Coolio::Loop.new
-  server = Coolio::TCPServer.new(HOST, PORT, MyConnection, method(:on_message))
+  server = Coolio::TCPServer.new(HOST, PORT, EchoServerConnection, method(:on_message))
   reactor.attach(server)
   thread = Thread.new { reactor.run(1) }
   send_data(data) if data
@@ -90,6 +100,7 @@ ensure
 end
 
 test_run("hello")
+#send_data("hello")
 
 #loop = Cool.io::Loop.new
 #loop.attach(s)
@@ -101,6 +112,7 @@ def server
     puts "hoge"
   end
   sock = TCPSocket.new('127.0.0.1', PORT)
-  server.__send__(:on_connection, sock)
+  soc = MyConnection.new(sock, method(:on_message))
+  soc.__send__(:on_connect)
 end
 #server()

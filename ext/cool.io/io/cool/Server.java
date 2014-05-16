@@ -30,6 +30,7 @@ import org.jruby.RubyArray;
 import org.jruby.RubyClass;
 import org.jruby.RubyIO;
 import org.jruby.RubyProc;
+import org.jruby.RubyString;
 import org.jruby.runtime.Block;
 import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.builtin.IRubyObject;
@@ -45,6 +46,9 @@ import org.jruby.util.log.LoggerFactory;
 public class Server extends Listener {
 
 	private static final long serialVersionUID = 2880224255152633861L;
+
+	private static final Logger LOG = LoggerFactory.getLogger(Server.class
+			.getName());
 
 	public Server(Ruby runtime, RubyClass metaClass, NioEventLoopGroup group) {
 		super(runtime, metaClass, group);
@@ -131,6 +135,8 @@ public class Server extends Listener {
 										Socket<SocketChannel> sock = makeSocket(ch);
 										ch.pipeline().addLast(
 												new ServerHandler(sock));
+										ch.closeFuture().addListener(
+												cf -> sock.callOnClose());
 									}
 								}, currentChildOptions, currentChildAttrs));
 			}
@@ -234,19 +240,23 @@ public class Server extends Listener {
 				throws Exception {
 			LOG.info("{} {}", msg, msg.getClass());
 			ByteBuf buf = (ByteBuf) msg;
-			ctx.write(msg);
+			byte[] bytes = new byte[buf.readableBytes()];
+			buf.readBytes(bytes);
+			IRubyObject data = RubyString.newStringNoCopy(getRuntime(), bytes);
+			socket.callOnRead(data);
+			// ctx.write(msg);
 		}
 
 		@Override
 		public void channelReadComplete(ChannelHandlerContext ctx)
 				throws Exception {
+			LOG.info("channelReadComplete");
 			ctx.flush();
 		}
 
 		@Override
 		public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
 			LOG.warn(cause);
-			ctx.close();
 		}
 	}
 

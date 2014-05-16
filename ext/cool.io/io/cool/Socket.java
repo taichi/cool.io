@@ -1,5 +1,7 @@
 package io.cool;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -16,6 +18,9 @@ import org.jruby.RubyString;
 import org.jruby.anno.JRubyMethod;
 import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.builtin.IRubyObject;
+import org.jruby.util.ByteList;
+import org.jruby.util.log.Logger;
+import org.jruby.util.log.LoggerFactory;
 
 /**
  * socket.rb on JRuby <br/>
@@ -25,12 +30,23 @@ import org.jruby.runtime.builtin.IRubyObject;
  */
 public class Socket<C extends Channel> extends IO {
 
-	private static final long serialVersionUID = -2068274809894172808L;
+	private static final long serialVersionUID = -2434070702852103374L;
 
-	public static void load(Ruby runtime) {
-		RubyClass sock = Utils.defineClass(runtime,
-				Utils.getClass(runtime, "IO"), Socket.class, Socket::new);
-		Utils.defineClass(runtime, sock, TCPSocket.class, TCPSocket::new);
+	private static final Logger LOG = LoggerFactory.getLogger(Socket.class
+			.getName());
+
+	public static void load(Ruby r) {
+		RubyClass sock = Utils.defineClass(r, Utils.getClass(r, "IO"),
+				Socket.class, Socket::new);
+		sock.callMethod(
+				"event_callback",
+				new IRubyObject[] { r.newSymbol("on_connect"),
+						r.newSymbol("on_connect_failed") });
+		sock.callMethod(
+				"alias_method",
+				new IRubyObject[] { r.newSymbol("on_resolve_failed"),
+						r.newSymbol("on_connect_failed") });
+		Utils.defineClass(r, sock, TCPSocket.class, TCPSocket::new);
 	}
 
 	C channel;
@@ -39,14 +55,6 @@ public class Socket<C extends Channel> extends IO {
 
 	public Socket(Ruby r, RubyClass rc) {
 		super(r, rc);
-		rc.callMethod(
-				"event_callback",
-				new IRubyObject[] { r.newSymbol("on_connect"),
-						r.newSymbol("on_connect_failed") });
-		rc.callMethod(
-				"alias_method",
-				new IRubyObject[] { r.newSymbol("on_resolve_failed"),
-						r.newSymbol("on_connect_failed") });
 	}
 
 	public void initialize(C channel) {
@@ -59,6 +67,19 @@ public class Socket<C extends Channel> extends IO {
 			return initialize(args[0]);
 		}
 		return getRuntime().getNil();
+	}
+
+	@Override
+	public IRubyObject write(IRubyObject data) {
+		// TODO Support Buffering ?
+		ByteList buf = data.asString().getByteList();
+		ByteBuf msg = Unpooled.wrappedBuffer(buf.getUnsafeBytes(), buf.begin(),
+				buf.length());
+		int length = msg.readableBytes();
+		LOG.info("length {}", length);
+		// TODO CRuby版とon_write_completeが呼び出されるタイミングがズレたかも…
+		this.channel.write(msg).addListener(cf -> callOnWriteComplete());
+		return RubyFixnum.int2fix(getRuntime(), length);
 	}
 
 	@JRubyMethod(meta = true, rest = true)
