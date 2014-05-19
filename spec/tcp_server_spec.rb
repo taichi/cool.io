@@ -48,7 +48,6 @@ def test_run(data = nil)
   sleep TIMEOUT
   reactor.stop
   server.detach
-  send_data('') # to leave from blocking loop
   thread.join
   @data
 ensure
