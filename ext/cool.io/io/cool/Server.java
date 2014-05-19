@@ -251,7 +251,7 @@ public class Server extends Listener {
 		public void channelReadComplete(ChannelHandlerContext ctx)
 				throws Exception {
 			LOG.info("channelReadComplete");
-			ctx.flush();
+			// ctx.flush();
 		}
 
 		@Override

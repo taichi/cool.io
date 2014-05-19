@@ -78,7 +78,10 @@ public class Socket<C extends Channel> extends IO {
 		int length = msg.readableBytes();
 		LOG.info("length {}", length);
 		// TODO CRuby版とon_write_completeが呼び出されるタイミングがズレたかも…
-		this.channel.write(msg).addListener(cf -> callOnWriteComplete());
+		// TODO 毎回Flushするのはパフォーマンス的にみて相当ひどい。
+		// JRuby版だけはSocket#flush足すかも。要検証
+		this.channel.writeAndFlush(msg)
+				.addListener(cf -> callOnWriteComplete());
 		return RubyFixnum.int2fix(getRuntime(), length);
 	}
 
