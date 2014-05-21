@@ -81,7 +81,7 @@ public class IO extends RubyObject {
 
 	@JRubyMethod()
 	public IRubyObject close() {
-		if (io.isClosed() == false) {
+		if (io != null && io.isClosed() == false) {
 			io.close();
 		}
 		return getRuntime().getNil();

@@ -1,5 +1,6 @@
 package io.cool;
 
+import io.cool.Socket.Connector;
 import io.netty.channel.nio.NioEventLoopGroup;
 
 import java.io.IOException;
@@ -41,8 +42,10 @@ public class Watcher extends RubyObject {
 		Utils.defineClass(runtime, watcher, StatWatcher.class, StatWatcher::new);
 		Utils.defineClass(runtime, watcher, TimerWatcher.class,
 				TimerWatcher::new);
-		Utils.defineClass(runtime, iowatcher, Socket.Connector.class,
-				(r, rc) -> new Socket.Connector(r, rc, group));
+		RubyClass connector = Utils.defineClass(runtime, iowatcher,
+				Connector.class, (r, rc) -> new Connector(r, rc, group));
+		connector.addReadWriteAttribute(runtime.getCurrentContext(),
+				"_connector");
 	}
 
 	public Watcher(Ruby runtime, RubyClass metaClass) {

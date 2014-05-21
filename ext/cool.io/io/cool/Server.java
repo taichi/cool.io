@@ -1,6 +1,5 @@
 package io.cool;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelConfig;
 import io.netty.channel.ChannelFuture;
@@ -28,9 +27,7 @@ import java.util.concurrent.TimeUnit;
 import org.jruby.Ruby;
 import org.jruby.RubyArray;
 import org.jruby.RubyClass;
-import org.jruby.RubyIO;
 import org.jruby.RubyProc;
-import org.jruby.RubyString;
 import org.jruby.runtime.Block;
 import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.builtin.IRubyObject;
@@ -47,8 +44,9 @@ public class Server extends Listener {
 
 	private static final long serialVersionUID = 2880224255152633861L;
 
-	private static final Logger LOG = LoggerFactory.getLogger(Server.class
-			.getName());
+	static final Logger LOG = LoggerFactory.getLogger(Server.class.getName());
+
+	Channel channel;
 
 	public Server(Ruby runtime, RubyClass metaClass, NioEventLoopGroup group) {
 		super(runtime, metaClass, group);
@@ -63,7 +61,7 @@ public class Server extends Listener {
 		Socket<SocketChannel> connection = (Socket<SocketChannel>) socketClass
 				.newInstance(c, makeArgs(channel), Block.NULL_BLOCK);
 		connection.initialize(channel);
-		connection.send(c, r.newSymbol("on_connect"), Block.NULL_BLOCK);
+		connection.callOnConnect();
 
 		IRubyObject maybeBlock = getInstanceVariable("@block");
 		if (maybeBlock.isNil() == false && maybeBlock instanceof RubyProc) {
@@ -89,11 +87,32 @@ public class Server extends Listener {
 		return new IRubyObject[] { toIO(channel), maybeArray };
 	}
 
-	RubyIO toIO(SocketChannel channel) {
-		return RubyIO.newIO(getRuntime(), NettyHack.runJavaChannel(channel));
+	@Override
+	public IRubyObject attach(IRubyObject loop) {
+		super.attach(loop);
+		if (loop instanceof Loop) {
+			Channel channel = translate((Loop) loop);
+			register(channel);
+		} else {
+			throw getRuntime().newArgumentError("must be Coolio::Loop");
+		}
+		return this;
 	}
 
-	@Override
+	// register FD to Selector
+	void register(Channel channel) {
+		ChannelFuture future = this.group.register(channel);
+		if (future.cause() != null) {
+			if (channel.isRegistered()) {
+				channel.close();
+			} else {
+				channel.unsafe().closeForcibly();
+			}
+		}
+		future.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+		this.channel = channel;
+	}
+
 	protected Channel translate(Loop loop) {
 		java.nio.channels.Channel ch = this.io.getChannel();
 		LOG.info("{}", ch);
@@ -133,8 +152,10 @@ public class Server extends Listener {
 											throws Exception {
 										LOG.info("initChannel with accept");
 										Socket<SocketChannel> sock = makeSocket(ch);
-										ch.pipeline().addLast(
-												new ServerHandler(sock));
+										ch.pipeline()
+												.addLast(
+														new SocketEventDispatcher(
+																sock));
 										ch.closeFuture().addListener(
 												cf -> sock.callOnClose());
 									}
@@ -226,38 +247,24 @@ public class Server extends Listener {
 		}
 	}
 
-	class ServerHandler extends ChannelInboundHandlerAdapter {
+	@Override
+	public IRubyObject detach() {
+		LOG.info("detach");
+		super.detach();
+		channel.close().awaitUninterruptibly();
+		this.channel = null;
+		LOG.info("detach {}", this);
+		return this;
+	}
 
-		final Socket<SocketChannel> socket;
-
-		public ServerHandler(Socket<SocketChannel> socket) {
-			this.socket = socket;
+	@Override
+	public IRubyObject isAttached() {
+		IRubyObject t = getRuntime().getTrue();
+		IRubyObject f = getRuntime().getFalse();
+		if (t.equals(super.isAttached())) {
+			return this.channel == null ? f : t;
 		}
-
-		// TODO dispatch event.
-		@Override
-		public void channelRead(ChannelHandlerContext ctx, Object msg)
-				throws Exception {
-			LOG.info("{} {}", msg, msg.getClass());
-			ByteBuf buf = (ByteBuf) msg;
-			byte[] bytes = new byte[buf.readableBytes()];
-			buf.readBytes(bytes);
-			IRubyObject data = RubyString.newStringNoCopy(getRuntime(), bytes);
-			socket.callOnRead(data);
-			// ctx.write(msg);
-		}
-
-		@Override
-		public void channelReadComplete(ChannelHandlerContext ctx)
-				throws Exception {
-			LOG.info("channelReadComplete");
-			// ctx.flush();
-		}
-
-		@Override
-		public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-			LOG.warn(cause);
-		}
+		return f;
 	}
 
 }

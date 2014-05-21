@@ -29,7 +29,7 @@ public class NettyHack {
 		}
 	}
 
-	static Method javaChannel = findJavaChannel();
+	static final Method javaChannel = findJavaChannel();
 
 	static Method findJavaChannel() {
 		return getMethod(AbstractNioChannel.class, "javaChannel");
@@ -46,7 +46,4 @@ public class NettyHack {
 		}
 	}
 
-	public static void shutdown() {
-		javaChannel = null;
-	}
 }

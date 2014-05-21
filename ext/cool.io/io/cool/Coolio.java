@@ -37,6 +37,5 @@ public class Coolio {
 		LOG.info("shutdown");
 		IO_EVENT_LOOP.shutdownGracefully();
 		LOCAL_EVENT_LOOP.shutdownGracefully();
-		NettyHack.shutdown();
 	}
 }

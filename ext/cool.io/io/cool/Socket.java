@@ -1,10 +1,14 @@
 package io.cool;
 
+import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
 
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -16,6 +20,7 @@ import org.jruby.RubyClass;
 import org.jruby.RubyFixnum;
 import org.jruby.RubyString;
 import org.jruby.anno.JRubyMethod;
+import org.jruby.runtime.Block;
 import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.util.ByteList;
@@ -38,6 +43,8 @@ public class Socket<C extends Channel> extends IO {
 	public static void load(Ruby r) {
 		RubyClass sock = Utils.defineClass(r, Utils.getClass(r, "IO"),
 				Socket.class, Socket::new);
+		sock.callMethod("watcher_delegate",
+				new IRubyObject[] { r.newSymbol("@_connector") });
 		sock.callMethod(
 				"event_callback",
 				new IRubyObject[] { r.newSymbol("on_connect"),
@@ -59,6 +66,12 @@ public class Socket<C extends Channel> extends IO {
 
 	public void initialize(C channel) {
 		this.channel = channel;
+	}
+
+	public void callOnConnect() {
+		Ruby r = getRuntime();
+		ThreadContext c = r.getCurrentContext();
+		send(c, r.newSymbol("on_connect"), Block.NULL_BLOCK);
 	}
 
 	@JRubyMethod(rest = true)
@@ -85,28 +98,74 @@ public class Socket<C extends Channel> extends IO {
 		return RubyFixnum.int2fix(getRuntime(), length);
 	}
 
-	@JRubyMethod(meta = true, rest = true)
-	public static IRubyObject connect(ThreadContext context,
-			IRubyObject socket, IRubyObject[] args) {
-		// TODO make client socket
-		return context.nil;
+	public void setConnector(Connector connector) {
+		this.connector = connector;
+		this.setInstanceVariable("@_connector", connector);
+	}
+
+	public Connector getConnector() {
+		return this.connector;
+	}
+
+	@JRubyMethod
+	public IRubyObject close() {
+		LOG.info("close");
+		if (connector != null
+				&& getRuntime().getTrue().equals(connector.isAttached())) {
+			connector.detach();
+		}
+		super.close();
+		return getRuntime().getNil();
 	}
 
 	public static class Connector extends IOWatcher {
 
 		private static final long serialVersionUID = -608265534082675529L;
 
+		Socket<SocketChannel> coolioSocket;
+
+		InetSocketAddress address;
+
 		public Connector(Ruby runtime, RubyClass metaClass,
 				NioEventLoopGroup group) {
 			super(runtime, metaClass, group);
 		}
 
-		// TODO client socketの生成処理
-		@Override
-		protected Channel translate(Loop loop) {
-			// TODO Auto-generated method stub
-			return null;
+		@JRubyMethod
+		public IRubyObject initialize(IRubyObject host, IRubyObject port) {
+			this.address = new InetSocketAddress(host.asJavaString(),
+					RubyFixnum.fix2int(port));
+			return this;
 		}
+
+		@Override
+		public IRubyObject attach(IRubyObject loop) {
+			super.attach(loop);
+			Bootstrap b = new Bootstrap();
+			b.group(group).channel(NioSocketChannel.class)
+					// TODO support TCP options
+					.option(ChannelOption.TCP_NODELAY, true)
+					.handler(new ChannelInitializer<SocketChannel>() {
+						@Override
+						public void initChannel(SocketChannel ch)
+								throws Exception {
+							coolioSocket.io = toIO(ch);
+							coolioSocket.initialize(ch);
+							coolioSocket.callOnConnect();
+							ch.pipeline().addLast(
+							// new LoggingHandler(LogLevel.INFO),
+									new SocketEventDispatcher(coolioSocket));
+							ch.closeFuture().addListener(
+									cf -> coolioSocket.callOnClose());
+						}
+					});
+			// TODO ここでconnectするのが正しいのか微妙。
+			// selectループをトリガすることを期待されているのは、
+			// Loop#run辺りだがNettyのインターフェースとそれ程上手くは適合しない。
+			b.connect(address);
+			return this;
+		}
+
 	}
 
 	public static class TCPSocket extends Socket<SocketChannel> {
@@ -115,6 +174,20 @@ public class Socket<C extends Channel> extends IO {
 
 		public TCPSocket(Ruby r, RubyClass rc) {
 			super(r, rc);
+		}
+
+		@JRubyMethod(meta = true)
+		public static IRubyObject connect(ThreadContext context,
+				IRubyObject self, IRubyObject host, IRubyObject port) {
+			RubyClass sockClazz = (RubyClass) self;
+			TCPSocket sock = (TCPSocket) sockClazz.allocate();
+			RubyClass conClazz = Utils.getClass(context.getRuntime(),
+					"Connector");
+			Connector connector = (Connector) conClazz.newInstance(context,
+					host, port, Block.NULL_BLOCK);
+			sock.setConnector(connector);
+			connector.coolioSocket = sock; // TODO 循環参照…
+			return sock;
 		}
 
 		@JRubyMethod(name = "remote_host")

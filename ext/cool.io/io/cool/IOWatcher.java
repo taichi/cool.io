@@ -1,9 +1,7 @@
 package io.cool;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
 
 import org.jruby.Ruby;
 import org.jruby.RubyClass;
@@ -26,7 +24,6 @@ public class IOWatcher extends Watcher {
 	final NioEventLoopGroup group;
 
 	RubyIO io;
-	Channel channel;
 
 	public IOWatcher(Ruby runtime, RubyClass metaClass, NioEventLoopGroup group) {
 		super(runtime, metaClass);
@@ -69,54 +66,7 @@ public class IOWatcher extends Watcher {
 		return getRuntime().getNil(); // do nothing.
 	}
 
-	@Override
-	public IRubyObject attach(IRubyObject loop) {
-		super.attach(loop);
-		if (loop instanceof Loop) {
-			Channel channel = translate((Loop) loop);
-			register(channel);
-		} else {
-			throw getRuntime().newArgumentError("must be Coolio::Loop");
-		}
-		return this;
-	}
-
-	protected Channel translate(Loop loop) {
-		throw getRuntime().newNoMethodError("IOWatcher must subclass",
-				"translate", loop);
-	}
-
-	// register FD to Selector
-	void register(Channel channel) {
-		ChannelFuture future = this.group.register(channel);
-		if (future.cause() != null) {
-			if (channel.isRegistered()) {
-				channel.close();
-			} else {
-				channel.unsafe().closeForcibly();
-			}
-		}
-		future.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
-		this.channel = channel;
-	}
-
-	@Override
-	public IRubyObject detach() {
-		LOG.info("detach");
-		super.detach();
-		channel.close().awaitUninterruptibly();
-		this.channel = null;
-		LOG.info("detach {}", this);
-		return this;
-	}
-
-	@Override
-	public IRubyObject isAttached() {
-		IRubyObject t = getRuntime().getTrue();
-		IRubyObject f = getRuntime().getFalse();
-		if (t.equals(super.isAttached())) {
-			return this.channel == null ? f : t;
-		}
-		return f;
+	protected RubyIO toIO(SocketChannel channel) {
+		return RubyIO.newIO(getRuntime(), NettyHack.runJavaChannel(channel));
 	}
 }
