@@ -41,7 +41,7 @@ public class Watcher extends RubyObject {
 
 		Utils.defineClass(runtime, watcher, StatWatcher.class, StatWatcher::new);
 		Utils.defineClass(runtime, watcher, TimerWatcher.class,
-				TimerWatcher::new);
+				(r, rc) -> new TimerWatcher(r, rc, Coolio.LOCAL_EVENT_LOOP));
 		RubyClass connector = Utils.defineClass(runtime, iowatcher,
 				Connector.class, (r, rc) -> new Connector(r, rc, group));
 		connector.addReadWriteAttribute(runtime.getCurrentContext(),

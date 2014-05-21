@@ -3,6 +3,7 @@ $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 
 require 'rspec'
 require 'cool.io'
+require 'cool.io/detect'
 
 def unused_port
   s = TCPServer.open(0)
@@ -18,5 +19,5 @@ RSpec.configure do |c|
   end
   c.after(:all) do
     Coolio.shutdown
-  end if defined?(JRUBY_VERSION)
+  end if jruby?
 end
