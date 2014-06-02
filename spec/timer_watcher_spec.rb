@@ -9,7 +9,7 @@ describe Cool.io::TimerWatcher do
     nr = '0'
     @watcher.on_timer { nr.succ! }.should == nil
     @watcher.attach(Cool.io::Loop.default).should == @watcher
-    nr.should == '0'
+    nr.should == '0' unless jruby?
     sleep interval
     Cool.io::Loop.default.run_once
     nr.should == '1' unless jruby?
