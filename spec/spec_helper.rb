@@ -17,7 +17,4 @@ RSpec.configure do |c|
     $stderr.puts "Skip some specs on Windows"
     c.filter_run_excluding :env => :exclude_win
   end
-  c.after(:all) do
-    Coolio.shutdown
-  end if jruby?
 end
