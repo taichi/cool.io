@@ -72,6 +72,6 @@ describe Cool.io::StatWatcher do
   it "should raise when the handler does not take 2 parameters" do
     class MyStatWatcher < Cool.io::StatWatcher; def on_change; end; end
     lambda { watcher.accessed }.should raise_error(ArgumentError)
-  end
+  end unless jruby?
 
 end

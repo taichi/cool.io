@@ -1,21 +1,37 @@
 package io.cool;
 
+import io.netty.channel.local.LocalEventLoopGroup;
+import io.netty.util.concurrent.EventExecutorGroup;
+import io.netty.util.concurrent.Future;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.stream.Stream;
 
 import org.jruby.Ruby;
 import org.jruby.RubyClass;
 import org.jruby.RubyFixnum;
 import org.jruby.RubyModule;
+import org.jruby.RubyObjectSpace;
 import org.jruby.RubyStruct;
 import org.jruby.RubyTime;
 import org.jruby.anno.JRubyMethod;
+import org.jruby.internal.runtime.methods.DynamicMethod;
+import org.jruby.runtime.Arity;
 import org.jruby.runtime.Block;
+import org.jruby.runtime.JavaInternalBlockBody;
+import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.builtin.IRubyObject;
 
 /**
@@ -27,11 +43,19 @@ public class StatWatcher extends Watcher {
 
 	private static final long serialVersionUID = 4923375467750839661L;
 
+	final WatchService watchService;
+	final EventExecutorGroup watcherPool;
+	final EventExecutorGroup workerPool;
+
+	Future<?> watcherFuture; // TODO need lock?
+	WatchKey watchKey;
+
 	public static void load(Ruby runtime) {
 		RubyModule coolio = Utils.getModule(runtime);
 		RubyClass watcher = Utils.getClass(runtime, "Watcher");
 		RubyClass statWatcher = Utils.defineClass(runtime, watcher,
-				StatWatcher.class, StatWatcher::new);
+				StatWatcher.class, (r, rc) -> new StatWatcher(r, rc,
+						Coolio.LOCAL_EVENT_LOOP));
 		watcher.extend(new IRubyObject[] { coolio.getConstant("Meta") });
 		// TODO ruby版には無いが不便ないのだろうか。
 		statWatcher.callMethod("event_callback",
@@ -49,8 +73,13 @@ public class StatWatcher extends Watcher {
 		coolio.setConstant(STAT_INFO, statInfo);
 	}
 
-	public StatWatcher(Ruby runtime, RubyClass metaClass) {
+	public StatWatcher(Ruby runtime, RubyClass metaClass,
+			EventExecutorGroup group) {
 		super(runtime, metaClass);
+		this.workerPool = group;
+		// TODO 全てのStatWatcherでWatchServiceを共有すべきだが…
+		this.watchService = Utils.newWatchService();
+		this.watcherPool = new LocalEventLoopGroup(1);
 	}
 
 	@JRubyMethod
@@ -58,8 +87,22 @@ public class StatWatcher extends Watcher {
 		IRubyObject i = interval.isNil() ? RubyFixnum.zero(getRuntime())
 				: interval;
 
+		// ファイル単位でしか監視できなくて辛くないのかな。
 		Utils.setVar(this, "@path", path);
 		Utils.setVar(this, "@interval", i);
+
+		RubyObjectSpace.define_finalizer(this, new IRubyObject[] { this },
+				new Block(new JavaInternalBlockBody(getRuntime(),
+						Arity.NO_ARGUMENTS) {
+					@Override
+					public IRubyObject yield(ThreadContext context,
+							IRubyObject value) {
+						Utils.close(watchService);
+						cancel();
+						watcherPool.shutdownGracefully();
+						return context.nil;
+					}
+				}, getRuntime().getCurrentContext().currentBinding()));
 
 		return getRuntime().getNil();
 	}
@@ -67,6 +110,79 @@ public class StatWatcher extends Watcher {
 	@JRubyMethod(name = "path")
 	public IRubyObject getPath() {
 		return Utils.getVar(this, "@path");
+	}
+
+	@Override
+	public IRubyObject attach(IRubyObject loop) {
+		super.attach(loop);
+		Path path = Paths.get(getPath().asJavaString());
+		BasicFileAttributes attrs = readAttributes(path);
+		if (attrs.isRegularFile()) {
+			path = path.getParent();
+		}
+		watchKey = Utils.watch(this.watchService, path);
+		start();
+		return this;
+	}
+
+	void start() {
+		this.watcherFuture = watcherPool
+				.submit(() -> {
+					try {
+						while (Thread.interrupted() == false) {
+							WatchKey key = watchService.take();
+							Path path = Path.class.cast(key.watchable());
+							for (WatchEvent<?> event : key.pollEvents()) {
+								dispatch(path, event);
+							}
+							key.reset();
+						}
+					} catch (ClosedWatchServiceException
+							| RejectedExecutionException e) {
+						LOG.debug("any time no problem.", e);
+					} catch (Exception e) {
+						LOG.error(e);
+					}
+				});
+	}
+
+	// TODO how to remove entries?
+	ConcurrentHashMap<Path, IRubyObject> map = new ConcurrentHashMap<>();
+
+	void dispatch(Path root, WatchEvent<?> event) {
+		Path resolved = root.resolve(Path.class.cast(event.context()));
+		Path path = Paths.get(getPath().asJavaString());
+		if (resolved.endsWith(path)) {
+			IRubyObject current = makeStatInfo(resolved);
+			workerPool.submit(() -> {
+				try {
+					IRubyObject prev = map.get(resolved);
+					DynamicMethod method = getMetaClass().searchMethod(
+							"on_change");
+					Arity a = method.getArity();
+					Arity.TWO_REQUIRED.checkArity(getRuntime(), a.getValue());
+					callMethod("on_change", prev, current);
+				} finally {
+					map.put(resolved, current);
+				}
+			});
+		}
+	}
+
+	void cancel() {
+		if (watchKey != null) {
+			watchKey.cancel();
+		}
+		if (watcherFuture != null && watcherFuture.isDone() == false
+				&& watcherFuture.isCancellable()) {
+			watcherFuture.cancel(true);
+		}
+	}
+
+	public IRubyObject detach() {
+		super.detach();
+		cancel();
+		return this;
 	}
 
 	IRubyObject makeStatInfo(Path path) {
@@ -79,21 +195,24 @@ public class StatWatcher extends Watcher {
 
 		BasicFileAttributes attrs = readAttributes(path);
 
-		IRubyObject atime = at(0L);
-		IRubyObject mtime = at(0L);
-		IRubyObject ctime = at(0L);
+		IRubyObject atime = at(attrs.lastAccessTime().toMillis());
+		IRubyObject mtime = at(attrs.lastModifiedTime().toMillis());
+		IRubyObject ctime = at(attrs.creationTime().toMillis());
 
+		// TODO unsupported
 		IRubyObject dev = nil;
 		IRubyObject ino = nil;
 		IRubyObject mode = nil;
 		IRubyObject nlink = nil;
 
+		// TODO unsupported
 		IRubyObject uid = nil;
 		IRubyObject gid = nil;
 		IRubyObject rdev = nil;
 
-		IRubyObject size = nil;
+		IRubyObject size = RubyFixnum.newFixnum(getRuntime(), attrs.size());
 
+		// TODO unsupported
 		IRubyObject blksize = nil;
 		IRubyObject blocks = nil;
 

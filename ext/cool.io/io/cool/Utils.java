@@ -1,5 +1,19 @@
 package io.cool;
 
+import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
+
 import org.jruby.Ruby;
 import org.jruby.RubyClass;
 import org.jruby.RubyModule;
@@ -48,5 +62,32 @@ public interface Utils {
 		vars.setInstanceVariable(key, value);
 		LOG.info("setVar {} {}", key, value);
 		return value;
+	}
+
+	static WatchService newWatchService() {
+		try {
+			return FileSystems.getDefault().newWatchService();
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
+	}
+
+	static WatchKey watch(WatchService ws, Path path) {
+		try {
+			return path.register(ws, new WatchEvent.Kind<?>[] { ENTRY_CREATE,
+					ENTRY_DELETE, ENTRY_MODIFY, OVERFLOW });
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
+	}
+
+	static void close(Closeable closeable) {
+		try {
+			if (closeable != null) {
+				closeable.close();
+			}
+		} catch (IOException e) {
+			LOG.warn(e);
+		}
 	}
 }
