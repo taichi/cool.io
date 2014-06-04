@@ -1,6 +1,5 @@
 package io.cool;
 
-import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 
 import org.jruby.Ruby;
@@ -21,13 +20,10 @@ public class IOWatcher extends Watcher {
 	static final Logger LOG = LoggerFactory
 			.getLogger(IOWatcher.class.getName());
 
-	final NioEventLoopGroup group;
-
 	RubyIO io;
 
-	public IOWatcher(Ruby runtime, RubyClass metaClass, NioEventLoopGroup group) {
+	public IOWatcher(Ruby runtime, RubyClass metaClass) {
 		super(runtime, metaClass);
-		this.group = group;
 	}
 
 	@JRubyMethod

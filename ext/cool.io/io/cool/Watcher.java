@@ -1,7 +1,6 @@
 package io.cool;
 
 import io.cool.Socket.Connector;
-import io.netty.channel.nio.NioEventLoopGroup;
 
 import java.io.IOException;
 
@@ -29,22 +28,19 @@ public class Watcher extends RubyObject {
 	public static void load(Ruby runtime) throws IOException {
 		RubyClass watcher = Utils.defineClass(runtime, Watcher.class,
 				Watcher::new);
-		// share groups all of IOWatchers.
-		NioEventLoopGroup group = Coolio.IO_EVENT_LOOP;
 		RubyClass iowatcher = Utils.defineClass(runtime, watcher,
-				IOWatcher.class, (r, rc) -> new IOWatcher(r, rc, group));
+				IOWatcher.class, IOWatcher::new);
 		RubyClass listener = Utils.defineClass(runtime, iowatcher,
-				Listener.class, (r, rc) -> new Listener(r, rc, group));
+				Listener.class, Listener::new);
 		listener.defineAnnotatedConstants(Listener.class);
-		Utils.defineClass(runtime, listener, Server.class,
-				(r, rc) -> new Server(r, rc, group));
+		Utils.defineClass(runtime, listener, Server.class, Server::new);
 
 		StatWatcher.load(runtime);
 
 		Utils.defineClass(runtime, watcher, TimerWatcher.class,
-				(r, rc) -> new TimerWatcher(r, rc, Coolio.LOCAL_EVENT_LOOP));
+				TimerWatcher::new);
 		RubyClass connector = Utils.defineClass(runtime, iowatcher,
-				Connector.class, (r, rc) -> new Connector(r, rc, group));
+				Connector.class, Connector::new);
 		connector.addReadWriteAttribute(runtime.getCurrentContext(),
 				"_connector");
 	}
@@ -55,6 +51,7 @@ public class Watcher extends RubyObject {
 
 	@JRubyMethod(required = 1)
 	public IRubyObject attach(IRubyObject loop) {
+		LOG.info("attach BEGIN {}", this);
 		// TODO attach と detach の処理に一貫性は必要か？
 		if (this.loop.isNil() == false) {
 			this.detach();
@@ -64,10 +61,10 @@ public class Watcher extends RubyObject {
 		if (watchers instanceof RubyHash) {
 			hash = (RubyHash) watchers;
 		} else {
-			hash = Utils.setVar(loop, "@watchers",
-					RubyHash.newHash(getRuntime()));
+			hash = RubyHash.newHash(getRuntime());
 		}
 		hash.put(this, getRuntime().getTrue());
+		Utils.setVar(loop, "@watchers", hash);
 
 		IRubyObject aw = Utils.getVar(loop, "@active_watchers");
 		if (RubyFixnum.zero(getRuntime()).equals(aw) || aw == null
@@ -78,12 +75,13 @@ public class Watcher extends RubyObject {
 		}
 		Utils.setVar(loop, "@active_watchers", aw);
 		this.loop = loop;
+		LOG.info("attach END   {}", this);
 		return this;
 	}
 
 	@JRubyMethod
 	public IRubyObject detach() {
-		LOG.info("detach");
+		LOG.info("detach BEGIN {}", this);
 		if (this.loop.isNil()) {
 			throw new IllegalStateException("not attached to a loop");
 		}
@@ -94,7 +92,7 @@ public class Watcher extends RubyObject {
 		aw = getRuntime().newFixnum(RubyFixnum.fix2int(aw) - 1);
 		Utils.setVar(loop, "@active_watchers", aw);
 		this.loop = getRuntime().getNil();
-		LOG.info("detach {}", this);
+		LOG.info("detach END  {}", this);
 		return this;
 	}
 

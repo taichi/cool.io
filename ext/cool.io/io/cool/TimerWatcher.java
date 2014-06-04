@@ -24,14 +24,10 @@ public class TimerWatcher extends Watcher {
 	static final Logger LOG = LoggerFactory.getLogger(TimerWatcher.class
 			.getName());
 
-	final EventExecutorGroup group;
-
 	ScheduledFuture<?> currentFuture; // TODO need lock?
 
-	public TimerWatcher(Ruby runtime, RubyClass metaClass,
-			EventExecutorGroup group) {
+	public TimerWatcher(Ruby runtime, RubyClass metaClass) {
 		super(runtime, metaClass);
-		this.group = group;
 	}
 
 	@JRubyMethod
@@ -51,7 +47,6 @@ public class TimerWatcher extends Watcher {
 
 	@Override
 	public IRubyObject attach(IRubyObject loop) {
-		cancel();
 		super.attach(loop);
 		schedule();
 		return this;
@@ -76,6 +71,7 @@ public class TimerWatcher extends Watcher {
 		long delay = bd.longValue();
 
 		IRubyObject repeating = Utils.getVar(this, "@repeating");
+		EventExecutorGroup group = Coolio.getWorkerLoop(getRuntime());
 		if (repeating.isTrue()) {
 			currentFuture = group.scheduleAtFixedRate(this::callOnTimer, delay,
 					delay, TimeUnit.MILLISECONDS);

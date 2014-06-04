@@ -48,8 +48,8 @@ public class Server extends Listener {
 
 	Channel channel;
 
-	public Server(Ruby runtime, RubyClass metaClass, NioEventLoopGroup group) {
-		super(runtime, metaClass, group);
+	public Server(Ruby runtime, RubyClass metaClass) {
+		super(runtime, metaClass);
 	}
 
 	// same as on_connection
@@ -101,7 +101,8 @@ public class Server extends Listener {
 
 	// register FD to Selector
 	void register(Channel channel) {
-		ChannelFuture future = this.group.register(channel);
+		NioEventLoopGroup group = Coolio.getIoLoop(getRuntime());
+		ChannelFuture future = group.register(channel);
 		if (future.cause() != null) {
 			if (channel.isRegistered()) {
 				channel.close();
@@ -140,6 +141,7 @@ public class Server extends Listener {
 		final Entry<ChannelOption<?>, Object>[] currentChildOptions = new Entry[0];
 		final Entry<AttributeKey<?>, Object>[] currentChildAttrs = new Entry[0];
 		cp.addLast(new LoggingHandler(LogLevel.INFO));
+		NioEventLoopGroup group = Coolio.getIoLoop(getRuntime());
 		cp.addLast(new ChannelInitializer<Channel>() {
 			@Override
 			public void initChannel(Channel ch) throws Exception {

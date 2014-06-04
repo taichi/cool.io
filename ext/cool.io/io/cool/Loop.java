@@ -1,7 +1,5 @@
 package io.cool;
 
-import io.netty.channel.MultithreadEventLoopGroup;
-
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
@@ -26,18 +24,11 @@ public class Loop extends RubyObject {
 			.getName());
 
 	public static void load(Ruby runtime) throws IOException {
-		MultithreadEventLoopGroup group = Coolio.LOCAL_EVENT_LOOP;
-		Utils.defineClass(runtime, Loop.class, (r, rc) -> {
-			return new Loop(r, rc, group);
-		});
+		Utils.defineClass(runtime, Loop.class, Loop::new);
 	}
 
-	MultithreadEventLoopGroup group;
-
-	public Loop(Ruby runtime, RubyClass metaClass,
-			MultithreadEventLoopGroup group) {
+	public Loop(Ruby runtime, RubyClass metaClass) {
 		super(runtime, metaClass);
-		this.group = group;
 	}
 
 	@JRubyMethod(name = "ev_loop_new", visibility = Visibility.PRIVATE, required = 1)
@@ -71,7 +62,7 @@ public class Loop extends RubyObject {
 				t = Math.round(d * 1000);
 			}
 		}
-		group.schedule(() -> {
+		Coolio.getWorkerLoop(getRuntime()).schedule(() -> {
 		}, t, TimeUnit.MILLISECONDS).awaitUninterruptibly();
 		return getRuntime().getNil();
 	}

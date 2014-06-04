@@ -1,7 +1,5 @@
 package io.cool;
 
-import io.netty.channel.nio.NioEventLoopGroup;
-
 import org.jruby.Ruby;
 import org.jruby.RubyClass;
 import org.jruby.anno.JRubyConstant;
@@ -23,8 +21,8 @@ public class Listener extends IOWatcher {
 	private static final Logger LOG = LoggerFactory.getLogger(Listener.class
 			.getName());
 
-	public Listener(Ruby runtime, RubyClass metaClass, NioEventLoopGroup group) {
-		super(runtime, metaClass, group);
+	public Listener(Ruby runtime, RubyClass metaClass) {
+		super(runtime, metaClass);
 	}
 
 	@JRubyConstant

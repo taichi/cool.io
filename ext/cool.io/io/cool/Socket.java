@@ -126,9 +126,8 @@ public class Socket<C extends Channel> extends IO {
 
 		InetSocketAddress address;
 
-		public Connector(Ruby runtime, RubyClass metaClass,
-				NioEventLoopGroup group) {
-			super(runtime, metaClass, group);
+		public Connector(Ruby runtime, RubyClass metaClass) {
+			super(runtime, metaClass);
 		}
 
 		@JRubyMethod
@@ -142,6 +141,7 @@ public class Socket<C extends Channel> extends IO {
 		public IRubyObject attach(IRubyObject loop) {
 			super.attach(loop);
 			Bootstrap b = new Bootstrap();
+			NioEventLoopGroup group = Coolio.getIoLoop(getRuntime());
 			b.group(group).channel(NioSocketChannel.class)
 					// TODO support TCP options
 					.option(ChannelOption.TCP_NODELAY, true)

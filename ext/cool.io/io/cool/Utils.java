@@ -5,7 +5,6 @@ import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.FileSystems;
@@ -13,11 +12,16 @@ import java.nio.file.Path;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.util.function.BiFunction;
 
 import org.jruby.Ruby;
 import org.jruby.RubyClass;
 import org.jruby.RubyModule;
+import org.jruby.runtime.Arity;
+import org.jruby.runtime.Block;
+import org.jruby.runtime.JavaInternalBlockBody;
 import org.jruby.runtime.ObjectAllocator;
+import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.runtime.builtin.InstanceVariables;
 import org.jruby.util.log.Logger;
@@ -64,6 +68,19 @@ public interface Utils {
 		return value;
 	}
 
+	static void addFinalizer(Ruby runtime, IRubyObject recv,
+			BiFunction<ThreadContext, IRubyObject, IRubyObject> fn) {
+		Block block = new Block(new JavaInternalBlockBody(runtime,
+				Arity.NO_ARGUMENTS) {
+			@Override
+			public IRubyObject yield(ThreadContext context, IRubyObject value) {
+				return fn.apply(context, value);
+			}
+		}, runtime.getCurrentContext().currentBinding());
+		IRubyObject finalizer = runtime.newProc(Block.Type.PROC, block);
+		recv.addFinalizer(finalizer);
+	}
+
 	static WatchService newWatchService() {
 		try {
 			return FileSystems.getDefault().newWatchService();
@@ -81,12 +98,12 @@ public interface Utils {
 		}
 	}
 
-	static void close(Closeable closeable) {
+	static void close(AutoCloseable closeable) {
 		try {
 			if (closeable != null) {
 				closeable.close();
 			}
-		} catch (IOException e) {
+		} catch (Exception e) {
 			LOG.warn(e);
 		}
 	}
