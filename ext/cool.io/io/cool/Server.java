@@ -78,12 +78,9 @@ public class Server extends Listener {
 			return new IRubyObject[] { toIO(channel) };
 		}
 		if (maybeArray instanceof RubyArray) {
-			RubyArray a = (RubyArray) maybeArray;
-			IRubyObject[] args = a.toJavaArray();
-			IRubyObject[] newArgs = new IRubyObject[args.length + 1];
-			newArgs[0] = toIO(channel);
-			System.arraycopy(args, 0, newArgs, 1, args.length);
-			return newArgs;
+			RubyArray a = (RubyArray) maybeArray.dup();
+			a.unshift(toIO(channel));
+			return a.toJavaArray();
 		}
 		return new IRubyObject[] { toIO(channel), maybeArray };
 	}
