@@ -23,7 +23,7 @@ import org.jruby.util.log.LoggerFactory;
 /**
  * @author taichi
  */
-public class FileSentinel {
+class FileSentinel {
 
 	private static final Logger LOG = LoggerFactory
 			.getLogger(FileSentinel.class.getName());

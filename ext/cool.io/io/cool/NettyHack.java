@@ -13,7 +13,7 @@ import org.jruby.util.log.LoggerFactory;
 /**
  * @author taichi
  */
-public class NettyHack {
+class NettyHack {
 
 	private static final Logger LOG = LoggerFactory.getLogger(NettyHack.class
 			.getName());
