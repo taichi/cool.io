@@ -39,13 +39,9 @@ public class IO extends RubyObject {
 		super(r, rc);
 	}
 
-	@JRubyMethod(required = 1)
+	@JRubyMethod(required = 1, argTypes = { RubyIO.class })
 	public IRubyObject initialize(IRubyObject io) {
-		if (io instanceof RubyIO) {
-			this.io = (RubyIO) io;
-		} else {
-			throw getRuntime().newArgumentError("must be RubyIO");
-		}
+		this.io = (RubyIO) io;
 		return getRuntime().getNil();
 	}
 
@@ -79,7 +75,7 @@ public class IO extends RubyObject {
 		return this.io.write(getRuntime().getCurrentContext(), data);
 	}
 
-	@JRubyMethod()
+	@JRubyMethod
 	public IRubyObject close() {
 		if (io != null && io.isClosed() == false) {
 			io.close();

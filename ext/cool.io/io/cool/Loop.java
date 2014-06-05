@@ -46,7 +46,7 @@ public class Loop extends RubyObject {
 		return runOnce(RubyNumeric.dbl2num(getRuntime(), 0.5));
 	}
 
-	@JRubyMethod(name = "run_once")
+	@JRubyMethod(name = "run_once", argTypes = { RubyNumeric.class })
 	public IRubyObject runOnce(IRubyObject timeout) {
 		LOG.info("run_once {} {} {}", timeout,
 				Utils.getVar(this, "@active_watchers"),
@@ -69,7 +69,7 @@ public class Loop extends RubyObject {
 
 	@JRubyMethod(name = "run_nonblock")
 	public IRubyObject runNonBlock() {
-		// TODO unimplemented
-		return getRuntime().getNil();
+		throw getRuntime().newNotImplementedError(
+				"run_nonblock is not supported");
 	}
 }

@@ -26,17 +26,13 @@ public class IOWatcher extends Watcher {
 		super(runtime, metaClass);
 	}
 
-	@JRubyMethod
+	@JRubyMethod(required = 1, argTypes = { RubyIO.class })
 	public IRubyObject initialize(IRubyObject io) {
-		if (io instanceof RubyIO) {
-			this.io = (RubyIO) io;
-		} else {
-			throw getRuntime().newArgumentError("must be RubyIO");
-		}
+		this.io = (RubyIO) io;
 		return getRuntime().getNil();
 	}
 
-	@JRubyMethod
+	@JRubyMethod(required = 2, argTypes = { RubyIO.class, IRubyObject.class })
 	public IRubyObject initialize(IRubyObject io, IRubyObject flags) {
 		initialize(io);
 		// TODO parse flags

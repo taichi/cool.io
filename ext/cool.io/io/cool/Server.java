@@ -94,8 +94,6 @@ public class Server extends Listener {
 		if (loop instanceof Loop) {
 			Channel channel = translate((Loop) loop);
 			register(channel);
-		} else {
-			throw getRuntime().newArgumentError("must be Coolio::Loop");
 		}
 		return this;
 	}

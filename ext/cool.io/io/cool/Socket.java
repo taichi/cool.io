@@ -130,7 +130,7 @@ public class Socket<C extends Channel> extends IO {
 			super(runtime, metaClass);
 		}
 
-		@JRubyMethod
+		@JRubyMethod(argTypes = { IRubyObject.class, RubyFixnum.class })
 		public IRubyObject initialize(IRubyObject host, IRubyObject port) {
 			this.address = new InetSocketAddress(host.asJavaString(),
 					RubyFixnum.fix2int(port));

@@ -50,7 +50,7 @@ public class Watcher extends RubyObject {
 		super(runtime, metaClass);
 	}
 
-	@JRubyMethod(required = 1)
+	@JRubyMethod(required = 1, argTypes = { Loop.class })
 	public IRubyObject attach(IRubyObject loop) {
 		LOG.info("attach BEGIN {}", this);
 		// TODO attach と detach の処理に一貫性は必要か？
