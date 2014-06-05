@@ -25,8 +25,8 @@ import org.jruby.util.log.LoggerFactory;
  */
 public class FileSentinel {
 
-	static final Logger LOG = LoggerFactory.getLogger(FileSentinel.class
-			.getName());
+	private static final Logger LOG = LoggerFactory
+			.getLogger(FileSentinel.class.getName());
 
 	WatchService watchService = Utils.newWatchService();
 

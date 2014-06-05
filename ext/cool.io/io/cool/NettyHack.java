@@ -15,8 +15,8 @@ import org.jruby.util.log.LoggerFactory;
  */
 public class NettyHack {
 
-	static final Logger LOG = LoggerFactory
-			.getLogger(NettyHack.class.getName());
+	private static final Logger LOG = LoggerFactory.getLogger(NettyHack.class
+			.getName());
 
 	public static Method getMethod(Class<?> clazz, String name) {
 		try {

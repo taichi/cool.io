@@ -19,9 +19,10 @@ import org.jruby.util.log.LoggerFactory;
  */
 public class Watcher extends RubyObject {
 
-	static final Logger LOG = LoggerFactory.getLogger(Watcher.class.getName());
-
 	private static final long serialVersionUID = -7312205638559031598L;
+
+	private static final Logger LOG = LoggerFactory.getLogger(Watcher.class
+			.getName());
 
 	IRubyObject loop = getRuntime().getNil();
 

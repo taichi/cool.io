@@ -17,8 +17,8 @@ public class IOWatcher extends Watcher {
 
 	private static final long serialVersionUID = -9155305357984430840L;
 
-	static final Logger LOG = LoggerFactory
-			.getLogger(IOWatcher.class.getName());
+	private static final Logger LOG = LoggerFactory.getLogger(IOWatcher.class
+			.getName());
 
 	RubyIO io;
 

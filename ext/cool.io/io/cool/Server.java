@@ -44,7 +44,8 @@ public class Server extends Listener {
 
 	private static final long serialVersionUID = 2880224255152633861L;
 
-	static final Logger LOG = LoggerFactory.getLogger(Server.class.getName());
+	private static final Logger LOG = LoggerFactory.getLogger(Server.class
+			.getName());
 
 	Channel channel;
 
