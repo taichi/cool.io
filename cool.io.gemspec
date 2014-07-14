@@ -1,6 +1,7 @@
 # -*- encoding: utf-8 -*-
 $:.push File.expand_path("../lib", __FILE__)
 require "cool.io/version"
+require "cool.io/detect"
 
 module Cool
   # Allow Coolio module to be referenced as Cool.io
@@ -15,13 +16,18 @@ Gem::Specification.new do |s|
   s.homepage    = "http://coolio.github.com"
   s.summary     = "A cool framework for doing high performance I/O in Ruby"
   s.description = "Cool.io provides a high performance event framework for Ruby which uses the libev C library"
-  s.extensions = ["ext/cool.io/extconf.rb", "ext/http11_client/extconf.rb", "ext/iobuffer/extconf.rb"]
-
+  
   s.files         = `git ls-files`.split("\n")
-  s.files        += ['lib/cool_io.jar'] if defined?(JRUBY_VERSION)
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   s.require_paths = ["lib"]
+  
+  if jruby?
+    s.files << "lib/coolio_ext.jar"
+    s.platform = "java"
+  else
+    s.extensions = ["ext/cool.io/extconf.rb", "ext/http11_client/extconf.rb", "ext/iobuffer/extconf.rb"]
+  end
   
   s.add_development_dependency "rake-compiler", "~> 0.8.3"
   s.add_development_dependency "rspec", ">= 2.13.0"

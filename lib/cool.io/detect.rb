@@ -1,3 +1,3 @@
 def jruby?
-  defined?(JRUBY_VERSION)
+  defined? JRUBY_VERSION
 end

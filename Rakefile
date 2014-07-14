@@ -25,7 +25,7 @@ spec = eval(File.read("cool.io.gemspec"))
 if defined? JRUBY_VERSION
   task :javaclean do
     sh "gradlew clean"
-    rm_rf "lib/cool_io.jar"
+    rm_rf "lib/coolio_ext.jar"
     rm_rf "build"
   end
   task :compile do

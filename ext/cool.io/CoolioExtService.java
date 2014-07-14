@@ -12,7 +12,7 @@ import org.jruby.runtime.load.BasicLibraryService;
 /**
  * @author taichi
  */
-public class CoolIoService implements BasicLibraryService {
+public class CoolioExtService implements BasicLibraryService {
 
 	@Override
 	public boolean basicLoad(Ruby runtime) throws IOException {

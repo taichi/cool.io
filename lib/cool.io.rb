@@ -15,7 +15,7 @@ end
 
 require "cool.io/loop"
 require "cool.io/meta"
-require "cool_io" if jruby?
+require "coolio_ext.jar" if jruby?
 require "cool.io/io" unless jruby?
 require "cool.io/iowatcher"
 require "cool.io/timer_watcher"

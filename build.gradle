@@ -19,7 +19,7 @@ dependencies {
 apply from: file('gradle/convention.gradle')
 
 jar {
-	archiveName = "cool_io.jar"
+	archiveName = "coolio_ext.jar"
 	destinationDir = file("lib/")
 	// TODO fatjarにしてるけど、これで良いのかな？gemspecにちゃんと書いた方が良いのかな。
 	from(configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }) {
