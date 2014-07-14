@@ -24,6 +24,7 @@ tmp
 
 ## PROJECT::SPECIFIC
 conftest.dSYM
+*.gem
 
 ## JRuby
 .jruby
