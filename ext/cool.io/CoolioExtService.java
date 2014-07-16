@@ -1,4 +1,5 @@
 import io.cool.Coolio;
+import io.cool.File;
 import io.cool.IO;
 import io.cool.Loop;
 import io.cool.Socket;
@@ -19,6 +20,7 @@ public class CoolioExtService implements BasicLibraryService {
 		Coolio.load(runtime);
 
 		IO.load(runtime);
+		File.load(runtime);
 		Loop.load(runtime);
 		Watcher.load(runtime); // load servers
 		Socket.load(runtime);
