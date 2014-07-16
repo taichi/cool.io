@@ -51,6 +51,9 @@ public class Loop extends RubyObject {
 		LOG.info("run_once {} {} {}", timeout,
 				Utils.getVar(this, "@active_watchers"),
 				Utils.getVar(this, "@running"));
+
+		Coolio.getFileSentinel(getRuntime()).start();
+
 		// TODO このタイムアウトを使って空のCallbackを呼んでもらう理由がよくわからぬ。
 		// https://github.com/tarcieri/cool.io/commit/7453ed1ff1e20de4c99002e24407fcacdb0ad081
 

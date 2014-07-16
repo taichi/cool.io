@@ -25,7 +25,7 @@ public class Coolio {
 	static final Logger LOG = LoggerFactory.getLogger(Coolio.class.getName());
 
 	enum CacheKey {
-		IO_LOOP, WORKER_LOOP, FILE_SENTINEL;
+		IO_LOOP, WORKER_LOOP, SENTINEL_LOOP, FILE_SENTINEL;
 	}
 
 	static final String CACHE_STORAGE = "io.cool.CacheStorage";
@@ -75,12 +75,14 @@ public class Coolio {
 				LocalEventLoopGroup::new);
 	}
 
+	static LocalEventLoopGroup getSentinelLoop(Ruby runtime) {
+		return getCacheEntry(runtime, CacheKey.SENTINEL_LOOP,
+				() -> new LocalEventLoopGroup(1));
+	}
+
 	public static FileSentinel getFileSentinel(Ruby runtime) {
-		return getCacheEntry(runtime, CacheKey.FILE_SENTINEL, () -> {
-			FileSentinel fs = new FileSentinel(getWorkerLoop(runtime));
-			fs.start();
-			return fs;
-		});
+		return getCacheEntry(runtime, CacheKey.FILE_SENTINEL,
+				() -> new FileSentinel(getSentinelLoop(runtime)));
 	}
 
 	/**
@@ -100,6 +102,7 @@ public class Coolio {
 			if (fs != null) {
 				fs.stop();
 			}
+			shutdown(CacheKey.SENTINEL_LOOP, storage);
 			shutdown(CacheKey.WORKER_LOOP, storage);
 			LOG.info("Finalize Cooolio END");
 			storage.clear();

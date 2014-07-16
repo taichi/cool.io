@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 
@@ -69,21 +70,22 @@ class FileSentinel {
 	}
 
 	public void start() {
-		if (running.getAndSet(true)) {
-			throw new IllegalStateException("already started");
+		if (running.getAndSet(true) == false) {
+			future = eventLoop.submit(this::publishEvents);
 		}
-		future = eventLoop.submit(this::publishEvents);
 	}
 
 	void publishEvents() {
 		try {
 			while (Thread.interrupted() == false && running.get()) {
-				WatchKey key = watchService.take();
-				Path path = Path.class.cast(key.watchable());
-				for (WatchEvent<?> event : key.pollEvents()) {
-					dispatch(path, event);
+				WatchKey key = watchService.poll(200, TimeUnit.MILLISECONDS);
+				if (key != null) {
+					Path path = Path.class.cast(key.watchable());
+					for (WatchEvent<?> event : key.pollEvents()) {
+						dispatch(path, event);
+					}
+					key.reset();
 				}
-				key.reset();
 			}
 		} catch (ClosedWatchServiceException | RejectedExecutionException e) {
 			LOG.debug("any time no problem.", e);
