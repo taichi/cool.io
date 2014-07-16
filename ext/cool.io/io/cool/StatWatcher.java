@@ -69,6 +69,11 @@ public class StatWatcher extends Watcher {
 	}
 
 	@JRubyMethod
+	public IRubyObject initialize(IRubyObject path) {
+		return initialize(path, RubyFixnum.zero(getRuntime()));
+	}
+
+	@JRubyMethod
 	public IRubyObject initialize(IRubyObject path, IRubyObject interval) {
 		IRubyObject i = interval.isNil() ? RubyFixnum.zero(getRuntime())
 				: interval;
@@ -102,23 +107,26 @@ public class StatWatcher extends Watcher {
 	}
 
 	void dispatch(Path root, WatchEvent<?> event) {
-		LOG.info("dispatch {} {}", event.kind().name(), root);
 		Coolio.getWorkerLoop(getRuntime()).submit(
 				() -> {
+					LOG.info("BEGIN run in worker {} {}", event.kind().name(),
+							root);
 					try {
 						Path resolved = root.resolve(Path.class.cast(event
 								.context()));
+						LOG.info("watch target {} resolved path {}",
+								getWatchFilePath(), resolved);
 						if (resolved.equals(getWatchFilePath())) {
 							IRubyObject current = makeStatInfo(resolved);
 							IRubyObject prev = this.previous
 									.getAndUpdate(p -> current);
-							if (prev.isNil() == false) {
-								callMethod("on_change", prev, current);
-							}
+							callMethod("on_change", prev, current);
 						}
 					} catch (IOException e) {
-						LOG.debug(e);
+						LOG.info(e);
 					}
+					LOG.info("END run in worker {} {}", event.kind().name(),
+							root);
 				});
 	}
 
@@ -145,6 +153,7 @@ public class StatWatcher extends Watcher {
 		IRubyObject mtime = at(attrs.lastModifiedTime().toMillis());
 		IRubyObject ctime = at(attrs.creationTime().toMillis());
 
+		// if u want to unsupported informations, use FFI.
 		// TODO unsupported
 		IRubyObject dev = nil;
 		IRubyObject ino = nil;
