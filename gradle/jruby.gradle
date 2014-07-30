@@ -71,9 +71,10 @@ class JRubyTask extends org.gradle.api.DefaultTask {
 	@TaskAction
 	void exec() {
 		project.exec {
-			def home = ".jruby${File.separator}jruby-${project.jrubyVersion}"
-			environment 'GEM_HOME', home
-			environment 'PATH', "$home/bin${File.pathSeparator}${System.getenv('PATH')}"
+			def home = ".jruby/jruby-${project.jrubyVersion}"
+			def gemHome = "$home/../rubygems"
+			environment 'GEM_HOME', gemHome
+			environment 'PATH', "$gemHome/bin${File.pathSeparator}$home/bin${File.pathSeparator}${System.getenv('PATH')}"
 			executable "$home/bin/jruby"
 			args makeArgs()
 			def host = System.properties['http.proxyHost']
