@@ -17,6 +17,8 @@ import org.jruby.util.io.ChannelDescriptor;
 import org.jruby.util.io.ChannelStream;
 import org.jruby.util.io.ModeFlags;
 import org.jruby.util.io.OpenFile;
+import org.jruby.util.log.Logger;
+import org.jruby.util.log.LoggerFactory;
 
 /**
  * @author taichi
@@ -24,6 +26,9 @@ import org.jruby.util.io.OpenFile;
 public class File extends RubyObject {
 
 	private static final long serialVersionUID = 6637244927066950642L;
+
+	private static final Logger LOG = LoggerFactory.getLogger(File.class
+			.getName());
 
 	public File(Ruby runtime, RubyClass metaClass) {
 		super(runtime, metaClass);
@@ -48,6 +53,7 @@ public class File extends RubyObject {
 
 		NonBlockingFile(Ruby runtime, String path) throws IOException {
 			super(runtime, runtime.getFile());
+			LOG.info("open NonBlockingFile {}", path);
 			MakeOpenFile();
 			this.path = path;
 			FileChannel channel = FileChannel.open(Paths.get(path),
@@ -58,6 +64,12 @@ public class File extends RubyObject {
 			ChannelDescriptor cd = new ChannelDescriptor(channel, md);
 			openFile.setMainStream(ChannelStream.open(runtime, cd));
 			openFile.setMode(md.getOpenFileFlags());
+		}
+
+		@Override
+		public IRubyObject close() {
+			LOG.info("close NonBlockingFile {}", path);
+			return super.close();
 		}
 	}
 }
