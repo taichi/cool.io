@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
@@ -107,6 +108,14 @@ public class StatWatcher extends Watcher {
 	}
 
 	void dispatch(Path root, WatchEvent<?> event) {
+		if (StandardWatchEventKinds.OVERFLOW.equals(event.kind())) {
+			LOG.warn("OVERFLOW {} {}", root, event.context());
+			return;
+		}
+		if (StandardWatchEventKinds.ENTRY_DELETE.equals(event.kind())) {
+			LOG.info("Content Deleted {} {}", root, event.context());
+			return;
+		}
 		Coolio.getWorkerLoop(getRuntime()).submit(
 				() -> {
 					LOG.info("BEGIN run in worker {} {}", event.kind().name(),
