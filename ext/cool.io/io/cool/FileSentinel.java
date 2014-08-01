@@ -43,15 +43,18 @@ class FileSentinel {
 	}
 
 	public void watch(Path path) {
+		LOG.info("watch {}", path);
 		WatchKey key = Utils.watch(this.watchService,
 				Files.isDirectory(path) ? path : path.getParent());
 		keys.putIfAbsent(path, key);
 	}
 
 	public void unwatch(Path path) {
+		LOG.info("unwatch {}", path);
 		WatchKey key = keys.remove(path);
 		if (key != null) {
 			key.cancel();
+			LOG.info("WatchKey exists and cacelled. {}", path);
 		}
 	}
 
