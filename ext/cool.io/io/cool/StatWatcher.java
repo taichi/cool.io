@@ -97,6 +97,7 @@ public class StatWatcher extends Watcher {
 		DynamicMethod method = getMetaClass().searchMethod("on_change");
 		Arity.TWO_REQUIRED.checkArity(getRuntime(), method.getArity()
 				.getValue());
+		LOG.info("{} {}", this, getWatchFilePath());
 
 		super.attach(loop);
 
