@@ -57,27 +57,32 @@ public class Watcher extends RubyObject {
 		if (this.loop.isNil() == false) {
 			this.detach();
 		}
-		IRubyObject watchers = Utils.getVar(loop, "@watchers");
-		RubyHash hash;
-		if (watchers instanceof RubyHash) {
-			hash = (RubyHash) watchers;
-		} else {
-			hash = RubyHash.newHash(getRuntime());
-		}
+		RubyHash hash = getWatchers(loop);
 		hash.put(this, getRuntime().getTrue());
 		Utils.setVar(loop, "@watchers", hash);
 
-		IRubyObject aw = Utils.getVar(loop, "@active_watchers");
-		if (RubyFixnum.zero(getRuntime()).equals(aw) || aw == null
-				|| aw.isNil()) {
-			aw = RubyFixnum.one(getRuntime());
-		} else {
-			aw = getRuntime().newFixnum(RubyFixnum.fix2int(aw) + 1);
-		}
+		RubyFixnum aw = getNumberOfActiveWatchers(loop);
+		aw = getRuntime().newFixnum(RubyFixnum.fix2int(aw) + 1);
 		Utils.setVar(loop, "@active_watchers", aw);
 		this.loop = loop;
 		LOG.info("attach END   {}", this);
 		return this;
+	}
+
+	RubyHash getWatchers(IRubyObject loop) {
+		IRubyObject watchers = Utils.getVar(loop, "@watchers");
+		if (watchers instanceof RubyHash) {
+			return (RubyHash) watchers;
+		}
+		return RubyHash.newHash(getRuntime());
+	}
+
+	RubyFixnum getNumberOfActiveWatchers(IRubyObject loop) {
+		IRubyObject aw = Utils.getVar(loop, "@active_watchers");
+		if (aw instanceof RubyFixnum) {
+			return (RubyFixnum) aw;
+		}
+		return RubyFixnum.zero(getRuntime());
 	}
 
 	@JRubyMethod
@@ -86,12 +91,16 @@ public class Watcher extends RubyObject {
 		if (this.loop.isNil()) {
 			throw new IllegalStateException("not attached to a loop");
 		}
-		RubyHash hash = (RubyHash) Utils.getVar(loop, "@watchers");
+		RubyHash hash = getWatchers(this.loop);
 		hash.remove(this);
 
-		RubyFixnum aw = (RubyFixnum) Utils.getVar(loop, "@active_watchers");
-		aw = getRuntime().newFixnum(RubyFixnum.fix2int(aw) - 1);
-		Utils.setVar(loop, "@active_watchers", aw);
+		RubyFixnum aw = getNumberOfActiveWatchers(loop);
+		if (RubyFixnum.zero(getRuntime())
+				.op_lt(getRuntime().getCurrentContext(), aw)
+				.equals(getRuntime().getTrue())) {
+			aw = getRuntime().newFixnum(RubyFixnum.fix2int(aw) - 1);
+			Utils.setVar(loop, "@active_watchers", aw);
+		}
 		this.loop = getRuntime().getNil();
 		LOG.info("detach END  {}", this);
 		return this;
