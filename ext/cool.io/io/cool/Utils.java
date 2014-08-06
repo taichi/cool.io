@@ -107,4 +107,8 @@ public interface Utils {
 			LOG.warn(e);
 		}
 	}
+
+	static String threadName() {
+		return Thread.currentThread().getName();
+	}
 }

@@ -50,22 +50,22 @@ public class Watcher extends RubyObject {
 
 	@JRubyMethod(required = 1, argTypes = { Loop.class })
 	public IRubyObject attach(IRubyObject arg) {
-		LOG.info("attach BEGIN {}", this);
+		LOG.info("attach BEGIN {} {}", Utils.threadName(), this);
 		Loop loop = (Loop) arg;
 		loop.attach(this);
-		LOG.info("attach END   {}", this);
+		LOG.info("attach END   {} {}", Utils.threadName(), this);
 		return this;
 	}
 
 	@JRubyMethod
 	public IRubyObject detach() {
-		LOG.info("detach BEGIN {}", this);
+		LOG.info("detach BEGIN {} {}", Utils.threadName(), this);
 		if (this.loop.isNil()) {
 			throw new IllegalStateException("not attached to a loop");
 		}
 		Loop loop = (Loop) this.loop;
 		loop.detach(this);
-		LOG.info("detach END  {}", this);
+		LOG.info("detach END {} {}", Utils.threadName(), this);
 		return this;
 	}
 
