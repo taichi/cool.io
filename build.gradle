@@ -18,14 +18,10 @@ dependencies {
 
 apply from: file('gradle/convention.gradle')
 
-jar {
-	archiveName = "coolio_ext.jar"
-	destinationDir = file("lib/")
-	// TODO fatjarにしてるけど、これで良いのかな？gemspecにちゃんと書いた方が良いのかな。
-	from(configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }) {
-		include "io/netty/**"
-	}
-	excludes = ["*.rb", "*.c", "*.h"]
+task copydeps(type: Copy) {
+  from configurations.compile
+  include "netty*"
+  into "ext/netty"
 }
 
 apply from: file('gradle/ide.gradle')

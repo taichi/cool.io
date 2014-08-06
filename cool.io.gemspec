@@ -23,7 +23,8 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
   
   if jruby?
-    s.files << "lib/coolio_ext.jar"
+    s.files << ["lib/coolio_ext.jar", "lib/dependencies.rb"]
+    s.files += Dir["ext/**/*.jar"]
     s.platform = "java"
   else
     s.extensions = ["ext/cool.io/extconf.rb", "ext/http11_client/extconf.rb", "ext/iobuffer/extconf.rb"]

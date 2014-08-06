@@ -29,7 +29,8 @@ conftest.dSYM
 ## JRuby
 .jruby
 *.lock
-lib/*.jar
+*.jar
+lib/dependencies.rb
 
 ## Gradle
 build

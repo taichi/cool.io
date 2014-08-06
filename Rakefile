@@ -23,16 +23,34 @@ end
 spec = eval(File.read("cool.io.gemspec"))
 
 if defined? JRUBY_VERSION
-  task :javaclean do
-    sh "gradlew clean"
-    rm_rf "lib/coolio_ext.jar"
-    rm_rf "build"
+  if Dir["ext/**/*.jar"].length < 1 && Rake.application.top_level_tasks.include?('copydeps') == false
+    warn "At first, you must run below"
+    warn "./gradlew copydeps"
+    abort "this task copy dependent libraries from maven repository using gradle."
   end
-  task :compile do
-    sh "gradlew jar"
+
+  desc "make dependent jar file list for jruby"
+  dep = "lib/dependencies.rb"
+  file dep do |t|
+    open "#{t.name}", "w" do |f|
+      Dir['ext/**/*.jar'].map { |x| "require \"#{x}\"" }.each do |x|
+        f.puts x
+      end
+    end
   end
+  CLEAN.include dep
+  
+  task :compile => dep
+
+  require "rake/javaextensiontask"
+  Rake::JavaExtensionTask.new('coolio_ext', spec) do |ext|
+    ext.target_version = '1.8'
+    ext.source_version = '1.8 -encoding UTF-8'
+    ext.ext_dir = 'ext/cool.io'
+    ext.classpath = Dir['ext/**/*.jar'].map { |x| File.expand_path x }.join File::PATH_SEPARATOR
+  end
+  
   task :build => [:compile]
-  task :clean => [:javaclean]
 else
   require 'rake/extensiontask'
 
