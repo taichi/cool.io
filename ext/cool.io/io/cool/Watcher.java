@@ -6,8 +6,6 @@ import java.io.IOException;
 
 import org.jruby.Ruby;
 import org.jruby.RubyClass;
-import org.jruby.RubyFixnum;
-import org.jruby.RubyHash;
 import org.jruby.RubyObject;
 import org.jruby.anno.JRubyMethod;
 import org.jruby.runtime.builtin.IRubyObject;
@@ -51,38 +49,12 @@ public class Watcher extends RubyObject {
 	}
 
 	@JRubyMethod(required = 1, argTypes = { Loop.class })
-	public IRubyObject attach(IRubyObject loop) {
+	public IRubyObject attach(IRubyObject arg) {
 		LOG.info("attach BEGIN {}", this);
-		// TODO attach と detach の処理に一貫性は必要か？
-		if (this.loop.isNil() == false) {
-			this.detach();
-		}
-		RubyHash hash = getWatchers(loop);
-		hash.put(this, getRuntime().getTrue());
-		Utils.setVar(loop, "@watchers", hash);
-
-		RubyFixnum aw = getNumberOfActiveWatchers(loop);
-		aw = getRuntime().newFixnum(RubyFixnum.fix2int(aw) + 1);
-		Utils.setVar(loop, "@active_watchers", aw);
-		this.loop = loop;
+		Loop loop = (Loop) arg;
+		loop.attach(this);
 		LOG.info("attach END   {}", this);
 		return this;
-	}
-
-	RubyHash getWatchers(IRubyObject loop) {
-		IRubyObject watchers = Utils.getVar(loop, "@watchers");
-		if (watchers instanceof RubyHash) {
-			return (RubyHash) watchers;
-		}
-		return RubyHash.newHash(getRuntime());
-	}
-
-	RubyFixnum getNumberOfActiveWatchers(IRubyObject loop) {
-		IRubyObject aw = Utils.getVar(loop, "@active_watchers");
-		if (aw instanceof RubyFixnum) {
-			return (RubyFixnum) aw;
-		}
-		return RubyFixnum.zero(getRuntime());
 	}
 
 	@JRubyMethod
@@ -91,17 +63,8 @@ public class Watcher extends RubyObject {
 		if (this.loop.isNil()) {
 			throw new IllegalStateException("not attached to a loop");
 		}
-		RubyHash hash = getWatchers(this.loop);
-		hash.remove(this);
-
-		RubyFixnum aw = getNumberOfActiveWatchers(loop);
-		if (RubyFixnum.zero(getRuntime())
-				.op_lt(getRuntime().getCurrentContext(), aw)
-				.equals(getRuntime().getTrue())) {
-			aw = getRuntime().newFixnum(RubyFixnum.fix2int(aw) - 1);
-			Utils.setVar(loop, "@active_watchers", aw);
-		}
-		this.loop = getRuntime().getNil();
+		Loop loop = (Loop) this.loop;
+		loop.detach(this);
 		LOG.info("detach END  {}", this);
 		return this;
 	}

@@ -2,9 +2,14 @@ package io.cool;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 
 import org.jruby.Ruby;
 import org.jruby.RubyClass;
+import org.jruby.RubyFixnum;
+import org.jruby.RubyHash;
 import org.jruby.RubyNumeric;
 import org.jruby.RubyObject;
 import org.jruby.anno.JRubyMethod;
@@ -22,6 +27,8 @@ public class Loop extends RubyObject {
 
 	private static final Logger LOG = LoggerFactory.getLogger(Loop.class
 			.getName());
+
+	Lock lock = new ReentrantLock();
 
 	public static void load(Ruby runtime) throws IOException {
 		Utils.defineClass(runtime, Loop.class, Loop::new);
@@ -74,5 +81,65 @@ public class Loop extends RubyObject {
 	public IRubyObject runNonBlock() {
 		throw getRuntime().newNotImplementedError(
 				"run_nonblock is not supported");
+	}
+
+	void attach(Watcher watcher) {
+		doLock(l -> internalAttach(watcher));
+	}
+
+	void detach(Watcher watcher) {
+		doLock(l -> internalDetach(watcher));
+	}
+
+	void doLock(Consumer<Lock> op) {
+		lock.lock();
+		try {
+			op.accept(lock);
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	void internalAttach(Watcher w) {
+		if (w.loop.isNil() == false) {
+			internalDetach(w);
+		}
+		RubyHash hash = getWatchers();
+		hash.put(w, getRuntime().getTrue());
+		Utils.setVar(this, "@watchers", hash);
+
+		RubyFixnum aw = getNumberOfActiveWatchers();
+		aw = getRuntime().newFixnum(RubyFixnum.fix2int(aw) + 1);
+		Utils.setVar(this, "@active_watchers", aw);
+		w.loop = this;
+	}
+
+	void internalDetach(Watcher w) {
+		RubyHash hash = getWatchers();
+		hash.remove(w);
+		RubyFixnum aw = getNumberOfActiveWatchers();
+		if (RubyFixnum.zero(getRuntime())
+				.op_lt(getRuntime().getCurrentContext(), aw)
+				.equals(getRuntime().getTrue())) {
+			aw = getRuntime().newFixnum(RubyFixnum.fix2int(aw) - 1);
+			Utils.setVar(this, "@active_watchers", aw);
+		}
+		w.loop = getRuntime().getNil();
+	}
+
+	RubyHash getWatchers() {
+		IRubyObject watchers = Utils.getVar(this, "@watchers");
+		if (watchers instanceof RubyHash) {
+			return (RubyHash) watchers;
+		}
+		return RubyHash.newHash(getRuntime());
+	}
+
+	RubyFixnum getNumberOfActiveWatchers() {
+		IRubyObject aw = Utils.getVar(this, "@active_watchers");
+		if (aw instanceof RubyFixnum) {
+			return (RubyFixnum) aw;
+		}
+		return RubyFixnum.zero(getRuntime());
 	}
 }
