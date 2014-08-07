@@ -30,13 +30,16 @@ if defined? JRUBY_VERSION
     abort "this task copy dependent libraries from maven repository using gradle."
   end
 
-  desc "make dependent jar file list for jruby"
-  dep = "lib/dependencies.rb"
+  desc "make jar file list for jruby"
+  dep = "lib/cool.io_ext.rb"
   file dep do |t|
     open "#{t.name}", "w" do |f|
-      Dir['ext/**/*.jar'].map { |x| "require \"#{x}\"" }.each do |x|
-        f.puts x
+      Dir.chdir 'lib' do
+        Dir['**/*.jar'].map { |x| "require \"#{x}\"" }.each do |x|
+          f.puts x
+        end
       end
+      f.puts "require \"coolio_ext.jar\""
     end
   end
   CLEAN.include dep
@@ -48,7 +51,7 @@ if defined? JRUBY_VERSION
     ext.target_version = '1.8'
     ext.source_version = '1.8 -encoding UTF-8'
     ext.ext_dir = 'ext/cool.io'
-    ext.classpath = Dir['ext/**/*.jar'].map { |x| File.expand_path x }.join File::PATH_SEPARATOR
+    ext.classpath = Dir['lib/**/*.jar'].map { |x| File.expand_path x }.join File::PATH_SEPARATOR
   end
   
   task :build => [:compile]

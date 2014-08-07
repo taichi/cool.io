@@ -30,7 +30,7 @@ conftest.dSYM
 .jruby
 *.lock
 *.jar
-lib/dependencies.rb
+lib/cool.io_ext.rb
 
 ## Gradle
 build

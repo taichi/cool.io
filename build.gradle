@@ -18,10 +18,10 @@ dependencies {
 
 apply from: file('gradle/convention.gradle')
 
-task copydeps(type: Copy) {
+task resolve_deps(type: Copy) {
   from configurations.compile
   include "netty*"
-  into "ext/netty"
+  into "lib"
 }
 
 apply from: file('gradle/ide.gradle')
