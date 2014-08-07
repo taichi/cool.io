@@ -23,9 +23,10 @@ end
 spec = eval(File.read("cool.io.gemspec"))
 
 if defined? JRUBY_VERSION
-  if Dir["ext/**/*.jar"].length < 1 && Rake.application.top_level_tasks.include?('copydeps') == false
+  if Dir["lib/**/*.jar"].length < 2 && Rake.application.top_level_tasks.include?('copydeps') == false
     warn "At first, you must run below"
-    warn "./gradlew copydeps"
+    sep = Rake.application.windows? ? File::ALT_SEPARATOR : File::SEPARATOR
+    warn ".#{sep}gradlew resolve_deps"
     abort "this task copy dependent libraries from maven repository using gradle."
   end
 
