@@ -54,13 +54,15 @@ class FileSentinel {
 		WatchKey key = keys.remove(path);
 		if (key != null) {
 			key.cancel();
-			LOG.info("WatchKey exists and cacelled. {}", path);
+			LOG.info("WatchKey exists and cancelled. {}", path);
 		}
 	}
 
 	public BiConsumer<Path, WatchEvent<?>> register(
 			BiConsumer<Path, WatchEvent<?>> listener) {
+		LOG.info("register BEGIN {}", listeners.size());
 		listeners.add(listener);
+		LOG.info("register END   {}", listeners.size());
 		return listener;
 	}
 
