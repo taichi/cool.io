@@ -113,10 +113,6 @@ public class StatWatcher extends Watcher {
 			LOG.warn("OVERFLOW {} {}", root, event.context());
 			return;
 		}
-		if (StandardWatchEventKinds.ENTRY_DELETE.equals(event.kind())) {
-			LOG.info("Content Deleted {} {}", root, event.context());
-			return;
-		}
 		Coolio.getWorkerLoop(getRuntime()).submit(
 				() -> {
 					LOG.info("BEGIN run in worker {} {}", event.kind().name(),
@@ -127,7 +123,13 @@ public class StatWatcher extends Watcher {
 						LOG.info("watch target {} resolved path {}",
 								getWatchFilePath(), resolved);
 						if (resolved.equals(getWatchFilePath())) {
-							IRubyObject current = makeStatInfo(resolved);
+							final IRubyObject current;
+							if (StandardWatchEventKinds.ENTRY_DELETE
+									.equals(event.kind())) {
+								current = makeEmptyStatInfo();
+							} else {
+								current = makeStatInfo(resolved);
+							}
 							IRubyObject prev = this.previous
 									.getAndUpdate(p -> current);
 							callMethod("on_change", prev, current);
@@ -149,8 +151,6 @@ public class StatWatcher extends Watcher {
 	}
 
 	IRubyObject makeStatInfo(Path path) throws IOException {
-		RubyModule coolio = Utils.getModule(getRuntime());
-
 		IRubyObject nil = getRuntime().getNil();
 
 		// http://linuxjm.sourceforge.jp/html/LDP_man-pages/man2/stat.2.html
@@ -183,8 +183,18 @@ public class StatWatcher extends Watcher {
 
 		IRubyObject[] args = { mtime, ctime, atime, dev, ino, mode, nlink, uid,
 				gid, rdev, size, blksize, blocks, };
+		return makeStatInfo(args);
+	}
+
+	IRubyObject makeStatInfo(IRubyObject[] args) {
+		RubyModule coolio = Utils.getModule(getRuntime());
 		return RubyStruct.newStruct(coolio.getConstant(STAT_INFO), args,
 				Block.NULL_BLOCK);
+	}
+
+	IRubyObject makeEmptyStatInfo() {
+		IRubyObject[] args = {};
+		return makeStatInfo(args);
 	}
 
 	RubyTime at(long milliseconds) {
