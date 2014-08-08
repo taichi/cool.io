@@ -1,10 +1,12 @@
 package io.cool;
 
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
+import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
@@ -109,7 +111,7 @@ public class StatWatcher extends Watcher {
 	}
 
 	void dispatch(Path root, WatchEvent<?> event) {
-		if (StandardWatchEventKinds.OVERFLOW.equals(event.kind())) {
+		if (OVERFLOW.equals(event.kind())) {
 			LOG.warn("OVERFLOW {} {}", root, event.context());
 			return;
 		}
@@ -117,25 +119,20 @@ public class StatWatcher extends Watcher {
 				() -> {
 					LOG.info("BEGIN run in worker {} {}", event.kind().name(),
 							root);
-					try {
-						Path resolved = root.resolve(Path.class.cast(event
-								.context()));
-						LOG.info("watch target {} resolved path {}",
-								getWatchFilePath(), resolved);
-						if (resolved.equals(getWatchFilePath())) {
-							final IRubyObject current;
-							if (StandardWatchEventKinds.ENTRY_DELETE
-									.equals(event.kind())) {
-								current = makeEmptyStatInfo();
-							} else {
-								current = makeStatInfo(resolved);
-							}
-							IRubyObject prev = this.previous
-									.getAndUpdate(p -> current);
-							callMethod("on_change", prev, current);
+					Path resolved = root.resolve(Path.class.cast(event
+							.context()));
+					LOG.info("watch target {} resolved path {}",
+							getWatchFilePath(), resolved);
+					if (resolved.equals(getWatchFilePath())) {
+						final IRubyObject current;
+						if (ENTRY_DELETE.equals(event.kind())) {
+							current = makeEmptyStatInfo();
+						} else {
+							current = makeStatInfo(resolved);
 						}
-					} catch (IOException e) {
-						LOG.info(e);
+						IRubyObject prev = this.previous
+								.getAndUpdate(p -> current);
+						callMethod("on_change", prev, current);
 					}
 					LOG.info("END run in worker {} {}", event.kind().name(),
 							root);
@@ -150,40 +147,44 @@ public class StatWatcher extends Watcher {
 		return this;
 	}
 
-	IRubyObject makeStatInfo(Path path) throws IOException {
-		IRubyObject nil = getRuntime().getNil();
+	IRubyObject makeStatInfo(Path path) {
+		try {
+			IRubyObject nil = getRuntime().getNil();
 
-		// http://linuxjm.sourceforge.jp/html/LDP_man-pages/man2/stat.2.html
-		// http://linux.die.net/man/2/stat
+			// http://linuxjm.sourceforge.jp/html/LDP_man-pages/man2/stat.2.html
+			// http://linux.die.net/man/2/stat
 
-		BasicFileAttributes attrs = Files.readAttributes(path,
-				BasicFileAttributes.class);
+			BasicFileAttributes attrs = Files.readAttributes(path,
+					BasicFileAttributes.class);
 
-		IRubyObject atime = at(attrs.lastAccessTime().toMillis());
-		IRubyObject mtime = at(attrs.lastModifiedTime().toMillis());
-		IRubyObject ctime = at(attrs.creationTime().toMillis());
+			IRubyObject atime = at(attrs.lastAccessTime().toMillis());
+			IRubyObject mtime = at(attrs.lastModifiedTime().toMillis());
+			IRubyObject ctime = at(attrs.creationTime().toMillis());
 
-		// if u want to unsupported informations, use FFI.
-		// TODO unsupported
-		IRubyObject dev = nil;
-		IRubyObject ino = nil;
-		IRubyObject mode = nil;
-		IRubyObject nlink = nil;
+			// if u want to unsupported informations, use FFI.
+			// TODO unsupported
+			IRubyObject dev = nil;
+			IRubyObject ino = nil;
+			IRubyObject mode = nil;
+			IRubyObject nlink = nil;
 
-		// TODO unsupported
-		IRubyObject uid = nil;
-		IRubyObject gid = nil;
-		IRubyObject rdev = nil;
+			// TODO unsupported
+			IRubyObject uid = nil;
+			IRubyObject gid = nil;
+			IRubyObject rdev = nil;
 
-		IRubyObject size = RubyFixnum.newFixnum(getRuntime(), attrs.size());
+			IRubyObject size = RubyFixnum.newFixnum(getRuntime(), attrs.size());
 
-		// TODO unsupported
-		IRubyObject blksize = nil;
-		IRubyObject blocks = nil;
+			// TODO unsupported
+			IRubyObject blksize = nil;
+			IRubyObject blocks = nil;
 
-		IRubyObject[] args = { mtime, ctime, atime, dev, ino, mode, nlink, uid,
-				gid, rdev, size, blksize, blocks, };
-		return makeStatInfo(args);
+			IRubyObject[] args = { mtime, ctime, atime, dev, ino, mode, nlink,
+					uid, gid, rdev, size, blksize, blocks, };
+			return makeStatInfo(args);
+		} catch (IOException e) {
+			return makeEmptyStatInfo();
+		}
 	}
 
 	IRubyObject makeStatInfo(IRubyObject[] args) {
