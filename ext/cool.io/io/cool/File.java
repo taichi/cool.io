@@ -2,6 +2,7 @@ package io.cool;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
@@ -56,14 +57,18 @@ public class File extends RubyObject {
 			LOG.info("open NonBlockingFile {}", path);
 			MakeOpenFile();
 			this.path = path;
-			FileChannel channel = FileChannel.open(Paths.get(path),
-					StandardOpenOption.READ);
-			openFile = new OpenFile();
-			ModeFlags md = ModeFlags.createModeFlags(ModeFlags.RDONLY
-					| ModeFlags.BINARY);
-			ChannelDescriptor cd = new ChannelDescriptor(channel, md);
-			openFile.setMainStream(ChannelStream.open(runtime, cd));
-			openFile.setMode(md.getOpenFileFlags());
+			try {
+				FileChannel channel = FileChannel.open(Paths.get(path),
+						StandardOpenOption.READ);
+				openFile = new OpenFile();
+				ModeFlags md = ModeFlags.createModeFlags(ModeFlags.RDONLY
+						| ModeFlags.BINARY);
+				ChannelDescriptor cd = new ChannelDescriptor(channel, md);
+				openFile.setMainStream(ChannelStream.open(runtime, cd));
+				openFile.setMode(md.getOpenFileFlags());
+			} catch (NoSuchFileException e) {
+				throw getRuntime().newErrnoENOENTError(e.getMessage());
+			}
 		}
 
 		@Override
