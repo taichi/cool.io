@@ -30,12 +30,7 @@ conftest.dSYM
 .jruby
 *.lock
 *.jar
-lib/cool.io_ext.rb
-
-## Gradle
-build
-.gradle
-gradle.properties
+lib/cool.io_jars.rb
 
 ## eclipse
 .project

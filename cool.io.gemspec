@@ -23,9 +23,12 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
   
   if jruby?
-    s.files << "lib/cool.io_ext.rb"
-    s.files += Dir["lib/**/*.jar"]
     s.platform = "java"
+    s.files << 'lib/coolio_ext.jar'
+    s.add_runtime_dependency 'jar-dependencies', '~>0.1.3'
+    s.requirements << "jar io.netty:netty-transport, 4.0.19.Final"
+    
+    s.add_development_dependency "builder", "~> 3.2.2"
   else
     s.extensions = ["ext/cool.io/extconf.rb", "ext/http11_client/extconf.rb", "ext/iobuffer/extconf.rb"]
   end

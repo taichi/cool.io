@@ -23,38 +23,29 @@ end
 spec = eval(File.read("cool.io.gemspec"))
 
 if defined? JRUBY_VERSION
-  if Dir["lib/**/*.jar"].length < 2 && Rake.application.top_level_tasks.include?('copydeps') == false
+  JARS = Dir["lib/**/*.jar"]
+  if JARS.length < 1 && Rake.application.top_level_tasks.include?('install_jars') == false
     warn "At first, you must run below"
-    sep = Rake.application.windows? ? File::ALT_SEPARATOR : File::SEPARATOR
-    warn ".#{sep}gradlew resolve_deps"
-    abort "this task copy dependent libraries from maven repository using gradle."
+    warn "rake install_jars"
+    abort "this task copy dependent libraries from maven repository."
   end
-
-  desc "make jar file list for jruby"
-  dep = "lib/cool.io_ext.rb"
-  file dep do |t|
-    open "#{t.name}", "w" do |f|
-      Dir.chdir 'lib' do
-        Dir['**/*.jar'].map { |x| "require \"#{x}\"" }.each do |x|
-          f.puts x
-        end
-      end
-      f.puts "require \"coolio_ext.jar\""
-    end
-  end
-  CLEAN.include dep
   
-  task :compile => dep
-
+  require 'jar_installer'
+  desc "install dependent jars to this project"
+  task :install_jars do
+    Jars::JarInstaller.vendor_jars
+  end
+  CLEAN.include 'lib/cool.io_jars.rb', JARS, 'lib/io'
+  
   require "rake/javaextensiontask"
   Rake::JavaExtensionTask.new('coolio_ext', spec) do |ext|
     ext.target_version = '1.8'
     ext.source_version = '1.8 -encoding UTF-8'
     ext.ext_dir = 'ext/cool.io'
-    ext.classpath = Dir['lib/**/*.jar'].map { |x| File.expand_path x }.join File::PATH_SEPARATOR
+    ext.classpath = JARS.map { |x| File.expand_path x }.join File::PATH_SEPARATOR
   end
   
-  task :build => [:compile]
+  task :build => :compile
 else
   require 'rake/extensiontask'
 
