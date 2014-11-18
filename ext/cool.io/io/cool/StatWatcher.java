@@ -115,28 +115,27 @@ public class StatWatcher extends Watcher {
 			LOG.warn("OVERFLOW {} {}", root, event.context());
 			return;
 		}
-		Coolio.getWorkerLoop(getRuntime()).submit(
-				() -> {
-					LOG.info("BEGIN run in worker {} {}", event.kind().name(),
-							root);
-					Path resolved = root.resolve(Path.class.cast(event
-							.context()));
-					LOG.info("watch target {} resolved path {}",
-							getWatchFilePath(), resolved);
-					if (resolved.equals(getWatchFilePath())) {
-						final IRubyObject current;
-						if (ENTRY_DELETE.equals(event.kind())) {
-							current = makeEmptyStatInfo();
-						} else {
-							current = makeStatInfo(resolved);
-						}
-						IRubyObject prev = this.previous
-								.getAndUpdate(p -> current);
-						callMethod("on_change", prev, current);
+		if (loop instanceof Loop) {
+			Loop lp = (Loop) loop;
+			lp.supply(l -> {
+				LOG.info("BEGIN run in worker {} {}", event.kind().name(), root);
+				Path resolved = root.resolve(Path.class.cast(event.context()));
+				LOG.info("watch target {} resolved path {}",
+						getWatchFilePath(), resolved);
+				if (resolved.equals(getWatchFilePath())) {
+					final IRubyObject current;
+					if (ENTRY_DELETE.equals(event.kind())) {
+						current = makeEmptyStatInfo();
+					} else {
+						current = makeStatInfo(resolved);
 					}
-					LOG.info("END run in worker {} {}", event.kind().name(),
-							root);
-				});
+					IRubyObject prev = this.previous.getAndUpdate(p -> current);
+					callMethod("on_change", prev, current);
+				}
+				LOG.info("END run in worker {} {}", event.kind().name(), root);
+			});
+		}
+
 	}
 
 	public IRubyObject detach() {

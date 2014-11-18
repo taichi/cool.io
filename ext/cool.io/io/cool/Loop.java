@@ -1,6 +1,9 @@
 package io.cool;
 
 import java.io.IOException;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -29,6 +32,8 @@ public class Loop extends RubyObject {
 			.getName());
 
 	Lock lock = new ReentrantLock();
+	int numberOfEvents = 0;
+	BlockingQueue<Consumer<Loop>> events = new LinkedBlockingQueue<>();
 
 	public static void load(Ruby runtime) throws IOException {
 		Utils.defineClass(runtime, Loop.class, Loop::new);
@@ -44,47 +49,61 @@ public class Loop extends RubyObject {
 			int f = RubyNumeric.fix2int(flags);
 			LOG.debug("flags are omitted {}", f);
 		}
-		// do nothing, already started.
+		Coolio.getFileSentinel(getRuntime()).start();
 		return getRuntime().getNil();
 	}
 
 	@JRubyMethod(name = "run_once")
-	public IRubyObject runOnce() {
-		return runOnce(RubyNumeric.dbl2num(getRuntime(), 0.5));
+	public IRubyObject runOnce() throws InterruptedException {
+		return runOnce(getRuntime().getNil());
 	}
 
 	@JRubyMethod(name = "run_once", argTypes = { RubyNumeric.class })
-	public IRubyObject runOnce(IRubyObject timeout) {
-		LOG.info("run_once {} {} {}", timeout,
+	public IRubyObject runOnce(IRubyObject timeout) throws InterruptedException {
+		LOG.info("run_once timeout:{} events:{} running:{} aw:{} w:{}",
+				timeout, numberOfEvents, Utils.getVar(this, "@running"),
 				Utils.getVar(this, "@active_watchers"),
-				Utils.getVar(this, "@running"));
+				Utils.getVar(this, "@watchers"));
 
-		Coolio.getFileSentinel(getRuntime()).start();
-
-		// TODO このタイムアウトを使って空のCallbackを呼んでもらう理由がよくわからぬ。
-		// https://github.com/tarcieri/cool.io/commit/7453ed1ff1e20de4c99002e24407fcacdb0ad081
-
-		// Loop.rbのrunメソッドによるwhileループがCPUサイクルを食いすぎるので大人しくさせる為にスレッドを適宜止める。
-		long t = 500;// 特に根拠のない数字。このスレッドでは何もしないのでずっと止まってて貰っても良いのでは？
+		long t = 500; // 特に根拠のないデフォルト値
 		if (timeout.isNil() == false) {
 			double d = RubyNumeric.num2dbl(timeout);
 			if (0 < d) {
 				t = Math.round(d * 1000);
 			}
 		}
-		Coolio.getWorkerLoop(getRuntime()).schedule(() -> {
-		}, t, TimeUnit.MILLISECONDS).awaitUninterruptibly();
-		return getRuntime().getNil();
+
+		Consumer<Loop> ev = this.events.poll(t, TimeUnit.MILLISECONDS);
+		if (ev != null) {
+			doLock(l -> {
+				ev.accept(this);
+				numberOfEvents--;
+			});
+		}
+		return RubyNumeric.int2fix(getRuntime(), this.numberOfEvents);
 	}
 
 	@JRubyMethod(name = "run_nonblock")
 	public IRubyObject runNonBlock() {
-		throw getRuntime().newNotImplementedError(
-				"run_nonblock is not supported");
+		Coolio.getWorkerLoop(getRuntime()).submit(new Callable<Void>() {
+			@Override
+			public Void call() throws Exception {
+				events.take().accept(Loop.this);
+				return null;
+			}
+		});
+		return RubyNumeric.int2fix(getRuntime(), this.numberOfEvents);
 	}
 
 	void attach(Watcher watcher) {
 		doLock(l -> internalAttach(watcher));
+	}
+
+	void supply(Consumer<Loop> event) {
+		doLock(l -> {
+			numberOfEvents++;
+			this.events.add(event);
+		});
 	}
 
 	void detach(Watcher watcher) {

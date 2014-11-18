@@ -92,7 +92,7 @@ module Coolio
 
     # Stop the event loop if it's running
     def stop
-      raise RuntimeError, "active watchers exists yet. detach all watchers before stopping the loop." if has_active_watchers?
+      raise RuntimeError, "loop not running" unless @running
       @running = false
     end
 

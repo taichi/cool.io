@@ -53,7 +53,10 @@ public class TimerWatcher extends Watcher {
 	}
 
 	void callOnTimer() {
-		callMethod("on_timer");
+		if (this.loop instanceof Loop) {
+			Loop lp = (Loop) this.loop;
+			lp.supply(l -> callMethod("on_timer"));
+		}
 	}
 
 	void cancel() {
