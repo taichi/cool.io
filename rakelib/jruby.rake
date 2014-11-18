@@ -16,7 +16,7 @@ namespace :jruby do
     
     URL = "https://s3.amazonaws.com/jruby.org/downloads/#{VERSION}/jruby-bin-#{VERSION}.zip"
     puts "download from #{URL}"
-    open(URL, "rb") do |tmp|
+    open(URL, "rb", :ssl_verify_mode => OpenSSL::SSL::VERIFY_NONE) do |tmp|
       cp tmp, ZIPPATH
     end
   end
