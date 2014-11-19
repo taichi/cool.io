@@ -26,7 +26,7 @@ Gem::Specification.new do |s|
     s.platform = "java"
     s.files << 'lib/coolio_ext.jar'
     s.add_runtime_dependency 'jar-dependencies', '~>0.1.3'
-    s.requirements << "jar io.netty:netty-transport, 4.0.19.Final"
+    s.requirements << "jar io.netty:netty-transport, 4.0.24.Final"
     
     s.add_development_dependency "builder", "~> 3.2.2"
   else
