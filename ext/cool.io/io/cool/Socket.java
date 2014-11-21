@@ -162,6 +162,7 @@ public class Socket<C extends Channel> extends RubyObject {
 		}
 
 		@Override
+		@JRubyMethod(required = 1, argTypes = { Loop.class })
 		public IRubyObject attach(IRubyObject loop) {
 			super.attach(loop);
 			Bootstrap b = new Bootstrap();
