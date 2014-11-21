@@ -18,6 +18,8 @@ import org.jruby.Ruby;
 import org.jruby.RubyArray;
 import org.jruby.RubyClass;
 import org.jruby.RubyFixnum;
+import org.jruby.RubyIO;
+import org.jruby.RubyObject;
 import org.jruby.RubyString;
 import org.jruby.anno.JRubyMethod;
 import org.jruby.runtime.Block;
@@ -33,7 +35,7 @@ import org.jruby.util.log.LoggerFactory;
  * 
  * @author taichi
  */
-public class Socket<C extends Channel> extends IO {
+public class Socket<C extends Channel> extends RubyObject {
 
 	private static final long serialVersionUID = -2434070702852103374L;
 
@@ -60,6 +62,8 @@ public class Socket<C extends Channel> extends IO {
 
 	Connector connector;
 
+	RubyIO io;
+
 	public Socket(Ruby r, RubyClass rc) {
 		super(r, rc);
 	}
@@ -74,6 +78,12 @@ public class Socket<C extends Channel> extends IO {
 		send(c, r.newSymbol("on_connect"), Block.NULL_BLOCK);
 	}
 
+	@JRubyMethod(required = 1, argTypes = { RubyIO.class })
+	public IRubyObject initialize(IRubyObject io) {
+		this.io = (RubyIO) io;
+		return getRuntime().getNil();
+	}
+
 	@JRubyMethod(rest = true)
 	public IRubyObject initialize(IRubyObject[] args) {
 		if (0 < args.length) {
@@ -82,9 +92,9 @@ public class Socket<C extends Channel> extends IO {
 		return getRuntime().getNil();
 	}
 
-	@Override
 	public IRubyObject write(IRubyObject data) {
 		// TODO Support Buffering ?
+		// use PooledByteBufAllocator
 		ByteList buf = data.asString().getByteList();
 		ByteBuf msg = Unpooled.wrappedBuffer(buf.getUnsafeBytes(), buf.begin(),
 				buf.length());
@@ -114,8 +124,22 @@ public class Socket<C extends Channel> extends IO {
 				&& getRuntime().getTrue().equals(connector.isAttached())) {
 			connector.detach();
 		}
-		super.close();
+		if (io != null && io.isClosed() == false) {
+			io.close();
+		}
 		return getRuntime().getNil();
+	}
+
+	public void callOnRead(IRubyObject data) {
+		callMethod("on_read", data);
+	}
+
+	public void callOnWriteComplete() {
+		callMethod("on_write_complete");
+	}
+
+	public void callOnClose() {
+		callMethod("on_close");
 	}
 
 	public static class Connector extends IOWatcher {

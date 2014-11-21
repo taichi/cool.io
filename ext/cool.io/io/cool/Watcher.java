@@ -27,8 +27,8 @@ public class Watcher extends RubyObject {
 	public static void load(Ruby runtime) throws IOException {
 		RubyClass watcher = Utils.defineClass(runtime, Watcher.class,
 				Watcher::new);
-		RubyClass iowatcher = Utils.defineClass(runtime, watcher,
-				IOWatcher.class, IOWatcher::new);
+		RubyClass iowatcher = Utils.getClass(runtime, "IOWatcher");
+		iowatcher.defineAnnotatedMethods(IOWatcher.class);
 		RubyClass listener = Utils.defineClass(runtime, iowatcher,
 				Listener.class, Listener::new);
 		listener.defineAnnotatedConstants(Listener.class);
