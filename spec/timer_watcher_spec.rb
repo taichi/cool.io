@@ -9,11 +9,10 @@ describe Cool.io::TimerWatcher do
     nr = '0'
     @watcher.on_timer { nr.succ! }.should == nil
     @watcher.attach(Cool.io::Loop.default).should == @watcher
-    nr.should == '0' unless jruby?
+    nr.should == '0'
     sleep interval
     Cool.io::Loop.default.run_once
-    nr.should == '1' unless jruby?
-    nr.should_not == '0' if jruby?
+    nr.should == '1'
   end
 
   it "can be subclassed" do
@@ -29,8 +28,7 @@ describe Cool.io::TimerWatcher do
     MyTimerWatcher::TMP.should == '0'
     sleep interval
     Cool.io::Loop.default.run_once
-    MyTimerWatcher::TMP.should == '1' unless jruby?
-    MyTimerWatcher::TMP.should_not == '0' if jruby?
+    MyTimerWatcher::TMP.should == '1'
   end
 
   it "can have the on_timer callback redefined between runs" do
@@ -41,13 +39,11 @@ describe Cool.io::TimerWatcher do
     nr.should == '0'
     sleep interval
     Cool.io::Loop.default.run_once
-    nr.should == '1' unless jruby?
-    nr.should_not == '0' if jruby?
+    nr.should == '1'
     @watcher.detach
     @watcher.on_timer { nr = :foo }.should == nil
     @watcher.attach(Cool.io::Loop.default).should == @watcher
-    nr.should == '1' unless jruby?
-    nr.should_not == '0' if jruby?
+    nr.should == '1'
     sleep interval
     Cool.io::Loop.default.run_once
     nr.should == :foo
