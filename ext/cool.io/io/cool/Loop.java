@@ -53,25 +53,24 @@ public class Loop extends RubyObject {
 		return getRuntime().getNil();
 	}
 
-	@JRubyMethod(name = "run_once")
-	public IRubyObject runOnce() throws InterruptedException {
-		return runOnce(getRuntime().getNil());
-	}
-
-	@JRubyMethod(name = "run_once", argTypes = { RubyNumeric.class })
-	public IRubyObject runOnce(IRubyObject timeout) throws InterruptedException {
-		LOG.info("run_once timeout:{} events:{} running:{} aw:{} w:{}",
-				timeout, numberOfEvents, Utils.getVar(this, "@running"),
-				Utils.getVar(this, "@active_watchers"),
-				Utils.getVar(this, "@watchers"));
-
+	@JRubyMethod(argTypes = { RubyNumeric.class }, optional = 1)
+	public IRubyObject run_once(IRubyObject[] timeout)
+			throws InterruptedException {
 		long t = 500; // 特に根拠のないデフォルト値
-		if (timeout.isNil() == false) {
-			double d = RubyNumeric.num2dbl(timeout);
-			if (0 < d) {
-				t = Math.round(d * 1000);
+		if (0 < timeout.length) {
+			IRubyObject tmp = timeout[0];
+			if (tmp.isNil() == false) {
+				double d = RubyNumeric.num2dbl(tmp);
+				if (0 < d) {
+					t = Math.round(d * 1000);
+				}
 			}
 		}
+
+		LOG.info("run_once timeout:{} events:{} running:{} aw:{} w:{}", t,
+				numberOfEvents, Utils.getVar(this, "@running"),
+				Utils.getVar(this, "@active_watchers"),
+				Utils.getVar(this, "@watchers"));
 
 		Consumer<Loop> ev = this.events.poll(t, TimeUnit.MILLISECONDS);
 		if (ev != null) {
