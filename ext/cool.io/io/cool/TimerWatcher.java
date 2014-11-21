@@ -46,6 +46,7 @@ public class TimerWatcher extends Watcher {
 	}
 
 	@Override
+	@JRubyMethod(required = 1, argTypes = { Loop.class })
 	public IRubyObject attach(IRubyObject loop) {
 		super.attach(loop);
 		schedule();
@@ -85,6 +86,7 @@ public class TimerWatcher extends Watcher {
 	}
 
 	@Override
+	@JRubyMethod
 	public IRubyObject detach() {
 		super.detach();
 		cancel();

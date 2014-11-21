@@ -17,11 +17,11 @@ require "cool.io/loop"
 require "cool.io/meta"
 require "cool.io/iowatcher"
 require "cool.io/io"
+require "cool.io/timer_watcher"
 require "cool.io_jars" if jruby?
 require "coolio_ext.jar" if jruby?
-require "cool.io/timer_watcher"
-require "cool.io/async_watcher" unless jruby?
 require "cool.io/listener" unless jruby?
+require "cool.io/async_watcher"
 require "cool.io/dns_resolver" unless jruby?
 require "cool.io/socket" unless jruby?
 require "cool.io/server"

@@ -13,6 +13,7 @@ import org.jruby.Ruby;
 import org.jruby.RubyArray;
 import org.jruby.RubyClass;
 import org.jruby.RubyProc;
+import org.jruby.anno.JRubyMethod;
 import org.jruby.runtime.Block;
 import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.builtin.IRubyObject;
@@ -71,6 +72,7 @@ public class Server extends Listener {
 	}
 
 	@Override
+	@JRubyMethod(required = 1, argTypes = { Loop.class })
 	public IRubyObject attach(IRubyObject loop) {
 		super.attach(loop);
 		if (loop instanceof Loop) {
@@ -114,6 +116,7 @@ public class Server extends Listener {
 	}
 
 	@Override
+	@JRubyMethod
 	public IRubyObject detach() {
 		LOG.info("detach");
 		super.detach();
