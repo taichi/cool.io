@@ -1,3 +1,4 @@
+import io.Buffer;
 import io.cool.Coolio;
 import io.cool.File;
 import io.cool.IO;
@@ -17,6 +18,8 @@ public class CoolioExtService implements BasicLibraryService {
 
 	@Override
 	public boolean basicLoad(Ruby runtime) throws IOException {
+		Buffer.load(runtime);
+
 		Coolio.load(runtime);
 
 		IO.load(runtime);

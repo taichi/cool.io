@@ -68,7 +68,7 @@ public interface Utils {
 		return value;
 	}
 
-	static void addFinalizer(Ruby runtime, IRubyObject recv,
+	public static void addFinalizer(Ruby runtime, IRubyObject recv,
 			BiFunction<ThreadContext, IRubyObject, IRubyObject> fn) {
 		Block block = new Block(new JavaInternalBlockBody(runtime,
 				Arity.NO_ARGUMENTS) {
