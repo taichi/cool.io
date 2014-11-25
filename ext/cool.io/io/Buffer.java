@@ -149,16 +149,28 @@ public class Buffer extends RubyObject {
 
 	@JRubyMethod(argTypes = { IRubyObject.class, RubyFixnum.class }, required = 2)
 	public IRubyObject read_frame(IRubyObject data, IRubyObject mark) {
-		int i = RubyNumeric.fix2int(mark);
-		if (i < 1) {
+		int m = RubyNumeric.fix2int(mark);
+		if (m < 1) {
 			throw getRuntime().newArgumentError(
 					"mark must be greater than zero");
 		}
-		if (255 < i) {
+		if (255 < m) {
 			throw getRuntime().newArgumentError("mark must be less than 256");
 		}
-		int rb = this.internalBuffer.readableBytes();
-		byte[] bytes = new byte[i < rb ? i : rb];
+
+		int index = this.internalBuffer.bytesBefore((byte) m);
+		if (index < 0) {
+			byte[] bytes = new byte[this.internalBuffer.readableBytes()];
+			transfer(data, bytes);
+			return getRuntime().getFalse();
+		}
+
+		byte[] bytes = new byte[index + 1];
+		transfer(data, bytes);
+		return getRuntime().getTrue();
+	}
+
+	void transfer(IRubyObject data, byte[] bytes) {
 		this.internalBuffer.readBytes(bytes);
 		if (data instanceof RubyString) {
 			RubyString str = (RubyString) data;
@@ -169,7 +181,6 @@ public class Buffer extends RubyObject {
 			io.write(getRuntime().getCurrentContext(),
 					RubyString.newStringNoCopy(getRuntime(), bytes));
 		}
-		return isEmpty();
 	}
 
 	@JRubyMethod
