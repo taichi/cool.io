@@ -130,16 +130,16 @@ describe IO::Buffer do
   
   context "#read_frame" do
     it "Read up to and including the given frame marker" do
-      buffer << "hoge"
+      buffer << "foo\nbarbaz"
       data = ""
-      expect(buffer.read_frame data, 2).to eq false
+      expect(buffer.read_frame data, "\n".ord).to eq true
       expect(buffer.empty?).to eq false
-      expect(data).to eq "ho"
-      expect(buffer.to_str).to eq "ge"
+      expect(data).to eq "foo\n"
+      expect(buffer.to_str).to eq "barbaz"
       
-      expect(buffer.read_frame data, 2).to eq true
+      expect(buffer.read_frame data, "\n".ord).to eq false
       expect(buffer.empty?).to eq true
-      expect(data).to eq "hoge"
+      expect(data).to eq "foo\nbarbaz"
       expect(buffer.to_str).to eq ""
     end
   end
