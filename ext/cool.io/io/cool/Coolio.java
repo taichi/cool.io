@@ -4,9 +4,9 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.local.LocalEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.jruby.Ruby;
@@ -27,76 +27,77 @@ public class Coolio {
 		IO_LOOP, WORKER_LOOP, FILE_SENTINEL;
 	}
 
-	static final String CACHE_STORAGE = "io.cool.CacheStorage";
-
 	public static void load(Ruby runtime) {
 		RubyModule coolio = runtime.defineModule("Coolio");
 		coolio.defineAnnotatedMethods(Coolio.class);
 
-		coolio.setInternalVariable(CACHE_STORAGE, new ConcurrentHashMap<>());
-		Utils.addFinalizer(runtime, coolio, (tc, self) -> {
-			shutdown(runtime.getCurrentContext(), coolio);
-			return tc.nil;
-		});
+		newStorage(coolio, CacheKey.IO_LOOP);
+		newStorage(coolio, CacheKey.WORKER_LOOP);
+		newStorage(coolio, CacheKey.FILE_SENTINEL);
+
+		Utils.addFinalizer(runtime, coolio, Coolio::shutdown);
 	}
 
-	static <T> T getCacheEntry(Ruby runtime, CacheKey key, Supplier<T> fn) {
-		ConcurrentMap<CacheKey, T> storage = getStorage(runtime);
-		return storage.computeIfAbsent(key, k -> fn.get());
+	static <T> void newStorage(RubyModule coolio, CacheKey key) {
+		coolio.setInternalVariable(key.name(),
+				new AtomicReference<Optional<T>>(Optional.empty()));
+	}
+
+	static <T> T computeIfAbsent(Ruby runtime, CacheKey key, Supplier<T> fn) {
+		AtomicReference<Optional<T>> ref = getStorage(runtime, key);
+		return ref.updateAndGet(
+				opt -> opt.isPresent() ? opt : Optional.of(fn.get())).get();
 	}
 
 	@SuppressWarnings("unchecked")
-	static <T> ConcurrentMap<CacheKey, T> getStorage(Ruby runtime) {
+	static <T> AtomicReference<Optional<T>> getStorage(Ruby runtime,
+			CacheKey key) {
 		RubyModule coolio = Utils.getModule(runtime);
-		ConcurrentMap<CacheKey, T> storage = (ConcurrentMap<CacheKey, T>) coolio
-				.getInternalVariable(CACHE_STORAGE);
+		AtomicReference<Optional<T>> storage = (AtomicReference<Optional<T>>) coolio
+				.getInternalVariable(key.name());
 		return storage;
 	}
 
-	static void shutdown(CacheKey k, Map<CacheKey, Object> storage) {
-		EventLoopGroup g = (EventLoopGroup) storage.get(k);
-		if (g != null) {
-			LOG.info("shutdown BEGIN {} {}", k, g);
+	static void shutdown(Ruby runtime, CacheKey key) {
+		shutdown(runtime, key, (EventLoopGroup g) -> {
 			g.shutdownGracefully().awaitUninterruptibly();
-			LOG.info("shutdown END   {} {}", k, g);
-		}
+		});
+	}
+
+	static <T> void shutdown(Ruby runtime, CacheKey key, Consumer<T> fn) {
+		AtomicReference<Optional<T>> ref = getStorage(runtime, key);
+		ref.get().ifPresent(v -> {
+			LOG.info("shutdown BEGIN {} {}", key, v);
+			fn.accept(v);
+			LOG.info("shutdown END   {} {}", key, v);
+		});
 	}
 
 	public static EventLoopGroup getIoLoop(Ruby runtime) {
 		// TODO how many workers do we need?
-		return getCacheEntry(runtime, CacheKey.IO_LOOP, NioEventLoopGroup::new);
+		return computeIfAbsent(runtime, CacheKey.IO_LOOP,
+				NioEventLoopGroup::new);
 	}
 
 	public static EventLoopGroup getWorkerLoop(Ruby runtime) {
 		// TODO how many workers do we need?
-		return getCacheEntry(runtime, CacheKey.WORKER_LOOP,
+		return computeIfAbsent(runtime, CacheKey.WORKER_LOOP,
 				LocalEventLoopGroup::new);
 	}
 
 	public static FileSentinel getFileSentinel(Ruby runtime) {
-		return getCacheEntry(runtime, CacheKey.FILE_SENTINEL,
+		return computeIfAbsent(runtime, CacheKey.FILE_SENTINEL,
 				() -> new FileSentinel(getWorkerLoop(runtime)));
 	}
 
-	/**
-	 * for testing purpose
-	 * 
-	 * @param runtime
-	 */
-	public static void shutdown(ThreadContext context, IRubyObject self) {
+	public static IRubyObject shutdown(ThreadContext context, IRubyObject self) {
 		Ruby runtime = context.getRuntime();
-		Map<CacheKey, Object> storage = getStorage(runtime);
-		if (storage.isEmpty() == false) {
-			LOG.info("Finalize Cooolio BEGIN");
-			shutdown(CacheKey.IO_LOOP, storage);
-			FileSentinel fs = (FileSentinel) storage
-					.get(CacheKey.FILE_SENTINEL);
-			if (fs != null) {
-				fs.stop();
-			}
-			shutdown(CacheKey.WORKER_LOOP, storage);
-			LOG.info("Finalize Cooolio END");
-			storage.clear();
-		}
+		LOG.info("Finalize Cooolio BEGIN");
+		shutdown(runtime, CacheKey.IO_LOOP);
+		shutdown(runtime, CacheKey.FILE_SENTINEL,
+				(FileSentinel fs) -> fs.stop());
+		shutdown(runtime, CacheKey.WORKER_LOOP);
+		LOG.info("Finalize Cooolio END");
+		return context.nil;
 	}
 }
