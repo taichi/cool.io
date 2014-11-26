@@ -1,8 +1,8 @@
 package io.cool;
 
+import io.netty.channel.EventLoopGroup;
 import io.netty.channel.local.LocalEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.util.concurrent.EventExecutorGroup;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,9 +53,8 @@ public class Coolio {
 		return storage;
 	}
 
-	static <T extends EventExecutorGroup> void shutdown(CacheKey k,
-			Map<CacheKey, Object> storage) {
-		EventExecutorGroup g = (EventExecutorGroup) storage.get(k);
+	static void shutdown(CacheKey k, Map<CacheKey, Object> storage) {
+		EventLoopGroup g = (EventLoopGroup) storage.get(k);
 		if (g != null) {
 			LOG.info("shutdown BEGIN {} {}", k, g);
 			g.shutdownGracefully().awaitUninterruptibly();
@@ -63,12 +62,12 @@ public class Coolio {
 		}
 	}
 
-	public static NioEventLoopGroup getIoLoop(Ruby runtime) {
+	public static EventLoopGroup getIoLoop(Ruby runtime) {
 		// TODO how many workers do we need?
 		return getCacheEntry(runtime, CacheKey.IO_LOOP, NioEventLoopGroup::new);
 	}
 
-	public static LocalEventLoopGroup getWorkerLoop(Ruby runtime) {
+	public static EventLoopGroup getWorkerLoop(Ruby runtime) {
 		// TODO how many workers do we need?
 		return getCacheEntry(runtime, CacheKey.WORKER_LOOP,
 				LocalEventLoopGroup::new);

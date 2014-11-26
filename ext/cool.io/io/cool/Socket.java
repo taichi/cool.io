@@ -6,7 +6,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.EventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
@@ -166,7 +166,7 @@ public class Socket<C extends Channel> extends RubyObject {
 		public IRubyObject attach(IRubyObject loop) {
 			super.attach(loop);
 			Bootstrap b = new Bootstrap();
-			NioEventLoopGroup group = Coolio.getIoLoop(getRuntime());
+			EventLoopGroup group = Coolio.getIoLoop(getRuntime());
 			b.group(group).channel(NioSocketChannel.class)
 					// TODO support TCP options
 					.option(ChannelOption.TCP_NODELAY, true)

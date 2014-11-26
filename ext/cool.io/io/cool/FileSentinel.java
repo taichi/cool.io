@@ -1,6 +1,6 @@
 package io.cool;
 
-import io.netty.channel.local.LocalEventLoopGroup;
+import io.netty.channel.EventLoopGroup;
 import io.netty.util.concurrent.Future;
 
 import java.io.IOException;
@@ -31,14 +31,14 @@ class FileSentinel {
 
 	WatchService watchService = Utils.newWatchService();
 
-	final LocalEventLoopGroup eventLoop;
+	final EventLoopGroup eventLoop;
 	final ConcurrentMap<Path, WatchKey> keys = new ConcurrentHashMap<>();
 	final CopyOnWriteArrayList<BiConsumer<Path, WatchEvent<?>>> listeners = new CopyOnWriteArrayList<BiConsumer<Path, WatchEvent<?>>>();
 
 	final AtomicBoolean running = new AtomicBoolean(false);
 	Future<?> future;
 
-	public FileSentinel(LocalEventLoopGroup watcherLoop) {
+	public FileSentinel(EventLoopGroup watcherLoop) {
 		this.eventLoop = watcherLoop;
 	}
 
