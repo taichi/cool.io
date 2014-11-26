@@ -26,19 +26,15 @@ public class Watcher extends RubyObject {
 
 	public static void load(Ruby runtime) throws IOException {
 		Utils.defineClass(runtime, Watcher.class, Watcher::new);
-		RubyClass iowatcher = Utils.getClass(runtime, "IOWatcher");
-		iowatcher.defineAnnotatedMethods(IOWatcher.class);
-		RubyClass listener = Utils.defineClass(runtime, iowatcher,
-				Listener.class, Listener::new);
-		listener.defineAnnotatedConstants(Listener.class);
+		RubyClass iowatcher = Utils.redefine(runtime, IOWatcher.class,
+				IOWatcher::new);
+		RubyClass listener = Utils.getClass(runtime, "Listener");
 		Utils.defineClass(runtime, listener, Server.class, Server::new);
 
 		StatWatcher.load(runtime);
 
-		Class<?> twclz = TimerWatcher.class;
-		RubyClass tw = Utils.getClass(runtime, twclz.getSimpleName());
-		tw.setAllocator(TimerWatcher::new);
-		tw.defineAnnotatedMethods(twclz);
+		Utils.redefine(runtime, TimerWatcher.class, TimerWatcher::new);
+
 		RubyClass connector = Utils.defineClass(runtime, iowatcher,
 				Connector.class, Connector::new);
 		connector.addReadWriteAttribute(runtime.getCurrentContext(),

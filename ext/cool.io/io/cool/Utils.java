@@ -54,6 +54,13 @@ public interface Utils {
 		return rc;
 	}
 
+	static RubyClass redefine(Ruby runtime, Class<?> clazz, ObjectAllocator oa) {
+		RubyClass rc = getClass(runtime, clazz.getSimpleName());
+		rc.setAllocator(oa);
+		rc.defineAnnotatedMethods(clazz);
+		return rc;
+	}
+
 	static IRubyObject getVar(IRubyObject ro, String key) {
 		InstanceVariables vars = ro.getInstanceVariables();
 		IRubyObject result = vars.getInstanceVariable(key);

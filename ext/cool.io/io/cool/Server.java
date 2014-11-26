@@ -1,11 +1,9 @@
 package io.cool;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
@@ -21,19 +19,16 @@ import org.jruby.util.log.Logger;
 import org.jruby.util.log.LoggerFactory;
 
 /**
- * server.rb on JRuby <br/>
- * UNIXServer is not support
+ * server.rb on JRuby
  * 
  * @author taichi
  */
-public class Server extends Listener {
+public class Server extends IOWatcher {
 
 	private static final long serialVersionUID = 2524963169711545569L;
 
 	private static final Logger LOG = LoggerFactory.getLogger(Server.class
 			.getName());
-
-	Channel channel;
 
 	public Server(Ruby runtime, RubyClass metaClass) {
 		super(runtime, metaClass);
@@ -75,30 +70,20 @@ public class Server extends Listener {
 	@JRubyMethod(required = 1, argTypes = { Loop.class })
 	public IRubyObject attach(IRubyObject loop) {
 		super.attach(loop);
-		if (loop instanceof Loop) {
-			this.channel = register((Loop) loop);
+		java.nio.channels.Channel ch = this.io.getChannel();
+		LOG.info("{}", ch);
+		if (ch instanceof java.nio.channels.ServerSocketChannel) {
+			register((java.nio.channels.ServerSocketChannel) ch);
+		} else {
+			throw getRuntime().newArgumentError(
+					"Unsupported channel Type " + ch);
 		}
 		return this;
 	}
 
-	protected Channel register(Loop loop) {
-		java.nio.channels.Channel ch = this.io.getChannel();
-		LOG.info("{}", ch);
-
-		if (ch instanceof java.nio.channels.ServerSocketChannel) {
-			return makeUp((java.nio.channels.ServerSocketChannel) ch);
-		}
-		if (ch instanceof java.nio.channels.DatagramChannel) {
-			// TODO not implemented
-		}
-		throw getRuntime().newArgumentError("Unsupported channel Type " + ch);
-	}
-
-	Channel makeUp(java.nio.channels.ServerSocketChannel channel) {
+	void register(java.nio.channels.ServerSocketChannel channel) {
 		ServerBootstrap b = new ServerBootstrap();
 		b.group(Coolio.getIoLoop(getRuntime()))
-				// TODO support ServerSocket Options
-				.option(ChannelOption.SO_BACKLOG, 1024)
 				.channelFactory(() -> new NioServerSocketChannel(channel))
 				.childHandler(new ChannelInitializer<SocketChannel>() {
 					@Override
@@ -110,30 +95,32 @@ public class Server extends Listener {
 						ch.closeFuture().addListener(cf -> sock.callOnClose());
 					}
 				});
-		ChannelFuture future = b.register();
-		future.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
-		return future.awaitUninterruptibly().channel();
+		this.future = b.register();
+		this.future
+				.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
 	}
+
+	ChannelFuture future;
 
 	@Override
 	@JRubyMethod
 	public IRubyObject detach() {
-		LOG.info("detach");
-		super.detach();
-		channel.close().awaitUninterruptibly();
-		this.channel = null;
-		LOG.info("detach {}", this);
-		return this;
+		return super.detach();
 	}
 
 	@Override
+	@JRubyMethod(name = "attached?")
 	public IRubyObject isAttached() {
-		IRubyObject t = getRuntime().getTrue();
-		IRubyObject f = getRuntime().getFalse();
-		if (t.equals(super.isAttached())) {
-			return this.channel == null ? f : t;
+		return super.isAttached();
+	}
+
+	@JRubyMethod
+	public IRubyObject close() throws Exception {
+		if (getRuntime().getTrue().equals(isAttached())) {
+			detach();
 		}
-		return f;
+		this.future.await().channel().close();
+		return this;
 	}
 
 }
