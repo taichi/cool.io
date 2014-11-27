@@ -24,11 +24,12 @@ Gem::Specification.new do |s|
   
   if jruby?
     s.platform = "java"
-    s.files << 'lib/coolio_ext.jar'
     s.add_runtime_dependency 'jar-dependencies', '~>0.1.3'
     s.requirements << "jar io.netty:netty-transport, 4.0.24.Final"
-    
+    ext_jar = 'lib/coolio_ext.jar'
+    s.files << ext_jar if File.exist?(ext_jar)
     s.add_development_dependency "builder", "~> 3.2.2"
+    require 'jar_install_post_install_hook'
   else
     s.extensions = ["ext/cool.io/extconf.rb", "ext/http11_client/extconf.rb", "ext/iobuffer/extconf.rb"]
   end

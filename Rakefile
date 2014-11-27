@@ -23,27 +23,14 @@ end
 spec = eval(File.read("cool.io.gemspec"))
 
 if defined? JRUBY_VERSION
-  JARS = Dir["lib/**/*.jar"]
-  if JARS.length < 1 && Rake.application.top_level_tasks.include?('install_jars') == false
-    warn "At first, you must run below"
-    warn "rake install_jars"
-    abort "this task copy dependent libraries from maven repository."
-  end
-  
-  require 'jar_installer'
-  desc "install dependent jars to this project"
-  task :install_jars do
-    Jars::JarInstaller.vendor_jars
-  end
-  CLEAN.include 'lib/cool.io_jars.rb', JARS, 'lib/io'
-  
   require "rake/javaextensiontask"
   Rake::JavaExtensionTask.new('coolio_ext', spec) do |ext|
     ext.target_version = '1.8'
     ext.source_version = '1.8 -encoding UTF-8'
     ext.ext_dir = 'ext/cool.io'
-    ext.classpath = JARS.map { |x| File.expand_path x }.join File::PATH_SEPARATOR
+    ext.classpath = Dir["lib/**/*.jar"].map { |x| File.expand_path x }.join File::PATH_SEPARATOR
   end
+  CLEAN.include "lib/coolio_ext.jar"
   
   task :build => :compile
 else
