@@ -1,8 +1,8 @@
 import io.Buffer;
 import io.cool.Coolio;
-import io.cool.File;
 import io.cool.Loop;
 import io.cool.Watcher;
+import io.cool.WinFile;
 
 import java.io.IOException;
 
@@ -20,7 +20,7 @@ public class CoolioExtService implements BasicLibraryService {
 
 		Coolio.load(runtime);
 
-		File.load(runtime);
+		WinFile.load(runtime);
 		Loop.load(runtime);
 		Watcher.load(runtime); // load servers
 

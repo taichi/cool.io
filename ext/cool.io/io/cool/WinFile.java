@@ -24,19 +24,19 @@ import org.jruby.util.log.LoggerFactory;
 /**
  * @author taichi
  */
-public class File extends RubyObject {
+public class WinFile extends RubyObject {
 
 	private static final long serialVersionUID = 6637244927066950642L;
 
-	private static final Logger LOG = LoggerFactory.getLogger(File.class
+	private static final Logger LOG = LoggerFactory.getLogger(WinFile.class
 			.getName());
 
-	public File(Ruby runtime, RubyClass metaClass) {
+	public WinFile(Ruby runtime, RubyClass metaClass) {
 		super(runtime, metaClass);
 	}
 
 	public static void load(Ruby runtime) {
-		Utils.defineClass(runtime, File.class, File::new);
+		Utils.defineClass(runtime, WinFile.class, WinFile::new);
 	}
 
 	@JRubyMethod(meta = true)
