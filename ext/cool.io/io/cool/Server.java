@@ -105,6 +105,7 @@ public class Server extends IOWatcher {
 	@Override
 	@JRubyMethod
 	public IRubyObject detach() {
+		this.future.awaitUninterruptibly().channel().deregister();
 		return super.detach();
 	}
 
@@ -112,15 +113,6 @@ public class Server extends IOWatcher {
 	@JRubyMethod(name = "attached?")
 	public IRubyObject isAttached() {
 		return super.isAttached();
-	}
-
-	@JRubyMethod
-	public IRubyObject close() throws Exception {
-		if (getRuntime().getTrue().equals(isAttached())) {
-			detach();
-		}
-		this.future.await().channel().close();
-		return this;
 	}
 
 }
