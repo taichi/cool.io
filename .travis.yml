@@ -12,6 +12,8 @@ rvm:
 jdk:
   - oraclejdk8
 
+env: JARS_VERBOSE=true
+
 matrix:
   allow_failures:
     - rvm: rbx
