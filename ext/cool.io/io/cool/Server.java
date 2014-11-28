@@ -35,22 +35,20 @@ public class Server extends IOWatcher {
 	}
 
 	// same as on_connection
-	@SuppressWarnings("unchecked")
-	Socket<SocketChannel> makeSocket(SocketChannel channel) {
+	IRubyObject makeSocket(SocketChannel channel) {
 		RubyClass socketClass = (RubyClass) Utils.getVar(this, "@klass");
 		Ruby r = getRuntime();
 		ThreadContext c = r.getCurrentContext();
-		Socket<SocketChannel> connection = (Socket<SocketChannel>) socketClass
-				.newInstance(c, makeArgs(channel), Block.NULL_BLOCK);
-		connection.initialize(channel);
-		connection.callOnConnect();
+		IRubyObject sock = socketClass.newInstance(c, makeArgs(channel),
+				Block.NULL_BLOCK);
+		sock.callMethod(c, "on_connect");
 
 		IRubyObject maybeBlock = getInstanceVariable("@block");
 		if (maybeBlock.isNil() == false && maybeBlock instanceof RubyProc) {
 			RubyProc block = (RubyProc) maybeBlock;
-			block.call(c, new IRubyObject[] { connection });
+			block.call(c, new IRubyObject[] { sock });
 		}
-		return connection;
+		return sock;
 	}
 
 	IRubyObject[] makeArgs(SocketChannel channel) {
@@ -90,9 +88,11 @@ public class Server extends IOWatcher {
 					protected void initChannel(SocketChannel ch)
 							throws Exception {
 						LOG.info("initChannel with accept");
-						Socket<SocketChannel> sock = makeSocket(ch);
+						IRubyObject sock = makeSocket(ch);
 						ch.pipeline().addLast(new SocketEventDispatcher(sock));
-						ch.closeFuture().addListener(cf -> sock.callOnClose());
+						ch.closeFuture().addListener(
+								cf -> sock.callMethod(sock.getRuntime()
+										.getCurrentContext(), "on_close"));
 					}
 				});
 		this.future = b.register();

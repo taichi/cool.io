@@ -3,7 +3,6 @@ package io.cool;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.channel.socket.SocketChannel;
 
 import org.jruby.RubyString;
 import org.jruby.runtime.builtin.IRubyObject;
@@ -18,9 +17,9 @@ class SocketEventDispatcher extends ChannelInboundHandlerAdapter {
 	static final Logger LOG = LoggerFactory
 			.getLogger(SocketEventDispatcher.class.getName());
 
-	final Socket<SocketChannel> socket;
+	final IRubyObject socket;
 
-	public SocketEventDispatcher(Socket<SocketChannel> socket) {
+	public SocketEventDispatcher(IRubyObject socket) {
 		this.socket = socket;
 	}
 
@@ -33,15 +32,8 @@ class SocketEventDispatcher extends ChannelInboundHandlerAdapter {
 		buf.readBytes(bytes);
 		IRubyObject data = RubyString.newStringNoCopy(socket.getRuntime(),
 				bytes);
-		socket.callOnRead(data);
+		socket.callMethod(socket.getRuntime().getCurrentContext(), "on_read",
+				data);
 		// ctx.write(msg);
 	}
-
-	@Override
-	public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
-		LOG.info("channelReadComplete");
-		// ctx.flush();
-		ctx.fireChannelReadComplete();
-	}
-
 }

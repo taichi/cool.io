@@ -7,8 +7,6 @@ import org.jruby.RubyClass;
 import org.jruby.RubyIO;
 import org.jruby.anno.JRubyMethod;
 import org.jruby.runtime.builtin.IRubyObject;
-import org.jruby.util.log.Logger;
-import org.jruby.util.log.LoggerFactory;
 
 /**
  * @author taichi
@@ -16,9 +14,6 @@ import org.jruby.util.log.LoggerFactory;
 public class IOWatcher extends Watcher {
 
 	private static final long serialVersionUID = -9155305357984430840L;
-
-	private static final Logger LOG = LoggerFactory.getLogger(IOWatcher.class
-			.getName());
 
 	RubyIO io;
 
@@ -35,9 +30,23 @@ public class IOWatcher extends Watcher {
 	@JRubyMethod(required = 2, argTypes = { RubyIO.class, IRubyObject.class })
 	public IRubyObject initialize(IRubyObject io, IRubyObject flags) {
 		initialize(io);
-		// TODO parse flags
-		LOG.info("** IOWatcher with flags not implemented.");
 		return getRuntime().getNil();
+	}
+
+	@Override
+	@JRubyMethod(required = 1, argTypes = { Loop.class })
+	public IRubyObject attach(IRubyObject arg) {
+		return super.attach(arg);
+	}
+
+	@JRubyMethod(name = "attached?")
+	public IRubyObject isAttached() {
+		return super.isAttached();
+	}
+
+	@JRubyMethod
+	public IRubyObject detach() {
+		return super.detach();
 	}
 
 	void dispatchOnReadable() {

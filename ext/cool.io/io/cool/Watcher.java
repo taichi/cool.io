@@ -1,11 +1,10 @@
 package io.cool;
 
-import io.cool.Socket.Connector;
-
 import java.io.IOException;
 
 import org.jruby.Ruby;
 import org.jruby.RubyClass;
+import org.jruby.RubyModule;
 import org.jruby.RubyObject;
 import org.jruby.anno.JRubyMethod;
 import org.jruby.runtime.builtin.IRubyObject;
@@ -26,19 +25,16 @@ public class Watcher extends RubyObject {
 
 	public static void load(Ruby runtime) throws IOException {
 		Utils.defineClass(runtime, Watcher.class, Watcher::new);
-		RubyClass iowatcher = Utils.redefine(runtime, IOWatcher.class,
+		RubyModule coolio = Utils.getModule(runtime);
+		RubyClass iowatcher = Utils.defineClass(runtime, IOWatcher.class,
 				IOWatcher::new);
-		RubyClass listener = Utils.getClass(runtime, "Listener");
+		RubyClass listener = coolio.defineClassUnder("Listener", iowatcher,
+				IOWatcher::new);
 		Utils.defineClass(runtime, listener, Server.class, Server::new);
 
 		StatWatcher.load(runtime);
 
-		Utils.redefine(runtime, TimerWatcher.class, TimerWatcher::new);
-
-		RubyClass connector = Utils.defineClass(runtime, iowatcher,
-				Connector.class, Connector::new);
-		connector.addReadWriteAttribute(runtime.getCurrentContext(),
-				"_connector");
+		Utils.defineClass(runtime, TimerWatcher.class, TimerWatcher::new);
 	}
 
 	public Watcher(Ruby runtime, RubyClass metaClass) {
