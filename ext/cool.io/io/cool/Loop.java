@@ -67,8 +67,9 @@ public class Loop extends RubyObject {
 			}
 		}
 
-		LOG.info("run_once timeout:{} events:{} running:{} aw:{} w:{}", t,
-				numberOfEvents, Utils.getVar(this, "@running"),
+		LOG.info(
+				"run_once timeout:{} events:{} running:{} active_watchers:{} watchers:{}",
+				t, numberOfEvents, Utils.getVar(this, "@running"),
 				Utils.getVar(this, "@active_watchers"),
 				Utils.getVar(this, "@watchers"));
 

@@ -1,6 +1,7 @@
 package io.cool;
 
 import java.io.IOException;
+import java.util.function.Consumer;
 
 import org.jruby.Ruby;
 import org.jruby.RubyClass;
@@ -24,17 +25,28 @@ public class Watcher extends RubyObject {
 	IRubyObject loop = getRuntime().getNil();
 
 	public static void load(Ruby runtime) throws IOException {
-		Utils.defineClass(runtime, Watcher.class, Watcher::new);
+		RubyClass watcher = Utils.defineClass(runtime, Watcher.class,
+				Watcher::new);
 		RubyModule coolio = Utils.getModule(runtime);
-		RubyClass iowatcher = Utils.defineClass(runtime, IOWatcher.class,
-				IOWatcher::new);
+		RubyClass iowatcher = coolio.defineClassUnder(
+				IOWatcher.class.getSimpleName(), watcher, IOWatcher::new);
+		iowatcher.defineAnnotatedMethods(Watcher.class);
+		iowatcher.defineAnnotatedMethods(IOWatcher.class);
+
 		RubyClass listener = coolio.defineClassUnder("Listener", iowatcher,
 				IOWatcher::new);
-		Utils.defineClass(runtime, listener, Server.class, Server::new);
+		RubyClass server = coolio.defineClassUnder(
+				Server.class.getSimpleName(), listener, Server::new);
+		server.defineAnnotatedMethods(Watcher.class);
+		server.defineAnnotatedMethods(IOWatcher.class);
+		server.defineAnnotatedMethods(Server.class);
 
 		StatWatcher.load(runtime);
 
-		Utils.defineClass(runtime, TimerWatcher.class, TimerWatcher::new);
+		RubyClass timer = coolio.defineClassUnder(
+				TimerWatcher.class.getSimpleName(), watcher, TimerWatcher::new);
+		timer.defineAnnotatedMethods(Watcher.class);
+		timer.defineAnnotatedMethods(TimerWatcher.class);
 	}
 
 	public Watcher(Ruby runtime, RubyClass metaClass) {
@@ -43,22 +55,35 @@ public class Watcher extends RubyObject {
 
 	@JRubyMethod(required = 1, argTypes = { Loop.class })
 	public IRubyObject attach(IRubyObject arg) {
-		LOG.info("attach BEGIN {} {}", Utils.threadName(), this);
-		Loop loop = (Loop) arg;
-		loop.attach(this);
-		LOG.info("attach END   {} {}", Utils.threadName(), this);
+		return this.doAttach(arg);
+	}
+
+	protected IRubyObject doAttach(IRubyObject arg) {
+		LOG.info("attach BEGIN {} {} {}", Utils.threadName(), this, arg);
+		if (arg instanceof Loop) {
+			Loop loop = (Loop) arg;
+			loop.attach(this);
+			this.loop = loop;
+		}
+		LOG.info("attach END   {} {} {}", Utils.threadName(), this, arg);
 		return this;
 	}
 
 	@JRubyMethod
 	public IRubyObject detach() {
-		LOG.info("detach BEGIN {} {}", Utils.threadName(), this);
+		return doDetach();
+	}
+
+	protected IRubyObject doDetach() {
+		LOG.info("detach BEGIN {} {} {}", Utils.threadName(), this, this.loop);
 		if (this.loop.isNil()) {
 			throw new IllegalStateException("not attached to a loop");
 		}
-		Loop loop = (Loop) this.loop;
-		loop.detach(this);
-		LOG.info("detach END {} {}", Utils.threadName(), this);
+		if (this.loop instanceof Loop) {
+			Loop loop = (Loop) this.loop;
+			loop.detach(this);
+		}
+		LOG.info("detach END {} {} {}", Utils.threadName(), this, this.loop);
 		return this;
 	}
 
@@ -66,6 +91,18 @@ public class Watcher extends RubyObject {
 	public IRubyObject isAttached() {
 		return this.loop.isNil() ? getRuntime().getFalse() : getRuntime()
 				.getTrue();
+	}
+
+	@JRubyMethod
+	public IRubyObject evloop() {
+		return this.loop;
+	}
+
+	protected void dispatch(Consumer<Loop> fn) {
+		if (this.loop instanceof Loop) {
+			Loop l = (Loop) this.loop;
+			l.supply(fn);
+		}
 	}
 
 	// TODO not implemented.
@@ -77,11 +114,6 @@ public class Watcher extends RubyObject {
 
 	@JRubyMethod
 	public IRubyObject disable() {
-		return getRuntime().getNil();
-	}
-
-	@JRubyMethod
-	public IRubyObject evloop() {
 		return getRuntime().getNil();
 	}
 

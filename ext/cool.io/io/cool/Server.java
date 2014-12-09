@@ -1,7 +1,6 @@
 package io.cool;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
@@ -41,7 +40,7 @@ public class Server extends IOWatcher {
 		ThreadContext c = r.getCurrentContext();
 		IRubyObject sock = socketClass.newInstance(c, makeArgs(channel),
 				Block.NULL_BLOCK);
-		sock.callMethod(c, "on_connect");
+		dispatch(l -> sock.callMethod(c, "on_connect"));
 
 		IRubyObject maybeBlock = getInstanceVariable("@block");
 		if (maybeBlock.isNil() == false && maybeBlock instanceof RubyProc) {
@@ -67,7 +66,7 @@ public class Server extends IOWatcher {
 	@Override
 	@JRubyMethod(required = 1, argTypes = { Loop.class })
 	public IRubyObject attach(IRubyObject loop) {
-		super.attach(loop);
+		super.doAttach(loop);
 		java.nio.channels.Channel ch = this.io.getChannel();
 		LOG.info("{}", ch);
 		if (ch instanceof java.nio.channels.ServerSocketChannel) {
@@ -98,21 +97,6 @@ public class Server extends IOWatcher {
 		this.future = b.register();
 		this.future
 				.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
-	}
-
-	ChannelFuture future;
-
-	@Override
-	@JRubyMethod
-	public IRubyObject detach() {
-		this.future.awaitUninterruptibly().channel().deregister();
-		return super.detach();
-	}
-
-	@Override
-	@JRubyMethod(name = "attached?")
-	public IRubyObject isAttached() {
-		return super.isAttached();
 	}
 
 }
