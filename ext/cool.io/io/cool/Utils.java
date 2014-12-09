@@ -4,6 +4,7 @@ import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
+import io.netty.buffer.ByteBuf;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -17,6 +18,7 @@ import java.util.function.BiFunction;
 import org.jruby.Ruby;
 import org.jruby.RubyClass;
 import org.jruby.RubyModule;
+import org.jruby.RubyString;
 import org.jruby.runtime.Arity;
 import org.jruby.runtime.Block;
 import org.jruby.runtime.JavaInternalBlockBody;
@@ -117,5 +119,12 @@ public interface Utils {
 
 	static String threadName() {
 		return Thread.currentThread().getName();
+	}
+
+	static IRubyObject to(Ruby ruby, ByteBuf buf) {
+		byte[] bytes = new byte[buf.readableBytes()];
+		buf.readBytes(bytes);
+		return RubyString.newStringNoCopy(ruby, bytes);
+
 	}
 }
