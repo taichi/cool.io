@@ -1,5 +1,5 @@
 namespace :jruby do
-  VERSION = "1.7.16.1"
+  VERSION = "1.7.17"
   ZIPPATH = ".jruby/#{VERSION}.zip"
   task :extract do
     require 'zip'
