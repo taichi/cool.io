@@ -1,17 +1,17 @@
 package io.cool;
 
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.channel.ChannelPromise;
-import io.netty.channel.socket.DatagramChannel;
+import io.netty.channel.nio.NioEventLoop;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.nio.NioTask;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioDatagramChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.channels.DatagramChannel;
+import java.nio.channels.SelectableChannel;
+import java.nio.channels.SelectionKey;
+import java.util.concurrent.Semaphore;
 
 import org.jruby.Ruby;
 import org.jruby.RubyClass;
@@ -33,6 +33,7 @@ public class IOWatcher extends Watcher {
 
 	RubyIO io;
 	ChannelFuture future;
+	int interestOps = SelectionKey.OP_READ;
 
 	public IOWatcher(Ruby runtime, RubyClass metaClass) {
 		super(runtime, metaClass);
@@ -41,23 +42,44 @@ public class IOWatcher extends Watcher {
 	@JRubyMethod(required = 1, optional = 1)
 	public IRubyObject initialize(IRubyObject[] args) {
 		this.io = (RubyIO) args[0];
+		this.interestOps = parseFlags(args);
+		return getRuntime().getNil();
+	}
+
+	int parseFlags(IRubyObject[] args) {
 		if (1 < args.length) {
 			IRubyObject flag = args[1];
-			// TODO
+			String s = (String) flag.toJava(String.class);
+			if ("r".equals(s)) {
+				return SelectionKey.OP_READ;
+			} else if ("w".equals(s)) {
+				return SelectionKey.OP_WRITE;
+			} else if ("rw".equals(s)) {
+				return SelectionKey.OP_READ | SelectionKey.OP_WRITE;
+			} else {
+				String msg = String.format(
+						"invalid event type: '%s' (must be 'r', 'w', or 'rw')",
+						s);
+				throw getRuntime().newArgumentError(msg);
+			}
 		}
-		return getRuntime().getNil();
+		return SelectionKey.OP_READ;
 	}
 
 	@Override
 	@JRubyMethod(required = 1, argTypes = { Loop.class })
-	public IRubyObject attach(IRubyObject arg) {
+	public IRubyObject attach(IRubyObject arg) throws IOException {
 		super.doAttach(arg);
 		java.nio.channels.Channel ch = this.io.getChannel();
 		LOG.info("{}", ch);
-		if (ch instanceof java.nio.channels.DatagramChannel) {
-			register((java.nio.channels.DatagramChannel) ch);
+		if (ch instanceof DatagramChannel) {
+			DatagramChannel dc = (DatagramChannel) ch;
+			register(dc);
 		} else if (ch instanceof java.nio.channels.SocketChannel) {
-			register((java.nio.channels.SocketChannel) ch);
+			java.nio.channels.SocketChannel sc = (java.nio.channels.SocketChannel) ch;
+			register(sc);
+			// TODO when i call finishConnect?
+			sc.finishConnect();
 		} else {
 			throw getRuntime().newArgumentError(
 					"Unsupported channel Type " + ch);
@@ -65,62 +87,56 @@ public class IOWatcher extends Watcher {
 		return this;
 	}
 
-	void register(java.nio.channels.DatagramChannel channel) {
-		DatagramChannel dc = new NioDatagramChannel(channel);
-		dc.config().setAutoRead(false);
-		dc.pipeline().addLast(new ChannelInboundHandlerAdapter() {
-			@Override
-			public void channelActive(ChannelHandlerContext ctx)
-					throws Exception {
-				dispatchOnReadable();
-			}
-		});
-		register(dc);
-	}
-
-	void register(java.nio.channels.SocketChannel ch) {
-		SocketChannel sc = new NioSocketChannel(ch);
-		sc.pipeline().addLast(new ChannelInboundHandlerAdapter() {
-			@Override
-			public void channelActive(ChannelHandlerContext ctx)
-					throws Exception {
-				dispatchOnWritable();
-			}
-		});
-		register(sc);
+	void register(SelectableChannel ch) throws IOException {
+		NioEventLoopGroup group = Coolio.getIoLoop(getRuntime());
+		NioEventLoop nel = (NioEventLoop) group.next();
 		try {
-			ch.finishConnect();
-		} catch (IOException e) {
-			throw new UncheckedIOException(e);
+			Semaphore semaphore = new Semaphore(1);
+			ch.configureBlocking(false);
+			nel.register(ch, this.interestOps,
+					new NioTask<SelectableChannel>() {
+						@Override
+						public void channelReady(SelectableChannel ch,
+								SelectionKey key) throws Exception {
+							// FIXME selectするthreadとloopのスレッドの処理回数を併せる為の措置
+							if (semaphore.tryAcquire()) {
+								dispatch(key.readyOps(), semaphore);
+							}
+						}
+
+						@Override
+						public void channelUnregistered(SelectableChannel ch,
+								Throwable cause) throws Exception {
+							if (cause == null) {
+								LOG.debug("channelUnregistered", ch);
+							} else {
+								LOG.debug("channelUnregistered", cause);
+							}
+						}
+					});
+			nel.execute(() -> {
+			});
+		} catch (IOException ex) {
+			throw new UncheckedIOException(ex);
 		}
 	}
 
-	void register(Channel ch) {
-		ChannelPromise cp = ch.newPromise();
-		cp.addListener(f -> {
-			if (f.isSuccess() == false) {
-				LOG.error(f.cause());
+	void dispatch(int readyOps, Semaphore semaphore) {
+		if ((readyOps & SelectionKey.OP_READ) != 0 || readyOps == 0) {
+			dispatch("on_readable", semaphore);
+		} else if ((readyOps & SelectionKey.OP_WRITE) != 0) {
+			dispatch("on_writable", semaphore);
+		}
+	}
+
+	void dispatch(String event, Semaphore semaphore) {
+		dispatch(l -> {
+			try {
+				this.callMethod(event);
+			} finally {
+				semaphore.release();
 			}
 		});
-		this.future = Coolio.getIoLoop(getRuntime()).register(ch, cp);
-	}
-
-	@JRubyMethod
-	public IRubyObject detach() {
-		this.future.awaitUninterruptibly().channel().deregister();
-		return super.doDetach();
-	}
-
-	void dispatchOnReadable() {
-		dispatch("on_readable");
-	}
-
-	void dispatchOnWritable() {
-		dispatch("on_writable");
-	}
-
-	void dispatch(String event) {
-		dispatch(l -> this.callMethod(event));
 	}
 
 	@JRubyMethod(name = "on_readable")

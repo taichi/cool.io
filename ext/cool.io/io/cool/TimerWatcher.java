@@ -48,7 +48,7 @@ public class TimerWatcher extends Watcher {
 	@Override
 	@JRubyMethod(required = 1, argTypes = { Loop.class })
 	public IRubyObject attach(IRubyObject loop) {
-		super.attach(loop);
+		super.doAttach(loop);
 		schedule();
 		return this;
 	}

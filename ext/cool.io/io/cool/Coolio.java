@@ -73,7 +73,7 @@ public class Coolio {
 		});
 	}
 
-	public static EventLoopGroup getIoLoop(Ruby runtime) {
+	public static NioEventLoopGroup getIoLoop(Ruby runtime) {
 		// TODO how many workers do we need?
 		return computeIfAbsent(runtime, CacheKey.IO_LOOP,
 				NioEventLoopGroup::new);

@@ -54,7 +54,7 @@ public class Watcher extends RubyObject {
 	}
 
 	@JRubyMethod(required = 1, argTypes = { Loop.class })
-	public IRubyObject attach(IRubyObject arg) {
+	public IRubyObject attach(IRubyObject arg) throws Exception {
 		return this.doAttach(arg);
 	}
 

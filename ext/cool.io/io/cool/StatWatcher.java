@@ -101,7 +101,7 @@ public class StatWatcher extends Watcher {
 				.getValue());
 		LOG.info("{} {}", this, getWatchFilePath());
 
-		super.attach(loop);
+		super.doAttach(loop);
 
 		FileSentinel fs = Coolio.getFileSentinel(getRuntime());
 		this.listener = fs.register(this::dispatch);
