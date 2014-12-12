@@ -1,6 +1,5 @@
 package io.cool;
 
-import io.netty.channel.ChannelFuture;
 import io.netty.channel.nio.NioEventLoop;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.nio.NioTask;
@@ -32,7 +31,6 @@ public class IOWatcher extends Watcher {
 			.getName());
 
 	RubyIO io;
-	ChannelFuture future;
 	int interestOps = SelectionKey.OP_READ;
 
 	public IOWatcher(Ruby runtime, RubyClass metaClass) {

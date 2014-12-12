@@ -1,6 +1,7 @@
 package io.cool;
 
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
@@ -28,6 +29,8 @@ public class Server extends IOWatcher {
 
 	private static final Logger LOG = LoggerFactory.getLogger(Server.class
 			.getName());
+
+	ChannelFuture future;
 
 	public Server(Ruby runtime, RubyClass metaClass) {
 		super(runtime, metaClass);
@@ -97,6 +100,13 @@ public class Server extends IOWatcher {
 		this.future = b.register();
 		this.future
 				.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+	}
+
+	@Override
+	@JRubyMethod
+	public IRubyObject detach() {
+		this.future.awaitUninterruptibly().channel().deregister();
+		return super.detach();
 	}
 
 }
