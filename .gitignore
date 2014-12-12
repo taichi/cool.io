@@ -36,4 +36,5 @@ lib/cool.io_jars.rb
 .project
 .classpath
 .settings
+/launcher
 /bin

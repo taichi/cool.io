@@ -10,16 +10,21 @@ namespace :jruby do
       end
     end
   end
-
-  task :fetch do
+  
+  def download (type, dest)
     require 'open-uri'
     require 'net/https'
-    
-    URL = "https://s3.amazonaws.com/jruby.org/downloads/#{VERSION}/jruby-bin-#{VERSION}.zip"
-    puts "download from #{URL}"
-    open(URL, "rb", :ssl_verify_mode => OpenSSL::SSL::VERIFY_NONE) do |tmp|
-      cp tmp, ZIPPATH
+
+    target = "https://s3.amazonaws.com/jruby.org/downloads/#{VERSION}/jruby-#{type}-#{VERSION}.zip"
+    puts "download from #{target}"
+    open(target, "rb", :ssl_verify_mode => OpenSSL::SSL::VERIFY_NONE) do |tmp|
+      cp tmp, dest
     end
+  end
+
+  task :fetch do
+    download 'bin', ZIPPATH
+    download 'src', ".jruby/#{VERSION}-src.zip"
   end
   
   desc "fetch and extract JRuby-#{VERSION} to local directory."
