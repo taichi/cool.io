@@ -13,6 +13,7 @@ namespace :jruby do
 
   task :fetch do
     require 'open-uri'
+    require 'net/https'
     
     URL = "https://s3.amazonaws.com/jruby.org/downloads/#{VERSION}/jruby-bin-#{VERSION}.zip"
     puts "download from #{URL}"

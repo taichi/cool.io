@@ -24,7 +24,7 @@ Gem::Specification.new do |s|
   
   if jruby?
     s.platform = "java"
-    s.add_runtime_dependency 'jar-dependencies', '~>0.1.3'
+    s.add_runtime_dependency 'jar-dependencies', '~>0.1.7'
     s.requirements << "jar io.netty:netty-transport, 4.0.24.Final"
     ext_jar = 'lib/coolio_ext.jar'
     s.files << ext_jar if File.exist?(ext_jar)
