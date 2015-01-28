@@ -14,14 +14,13 @@ import org.jruby.RubyModule;
 import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.util.log.Logger;
-import org.jruby.util.log.LoggerFactory;
 
 /**
  * @author taichi
  */
 public class Coolio {
 
-	static final Logger LOG = LoggerFactory.getLogger(Coolio.class.getName());
+	static final Logger LOG = Utils.getLogger(Coolio.class);
 
 	enum CacheKey {
 		IO_LOOP, WORKER_LOOP, FILE_SENTINEL;
@@ -67,9 +66,9 @@ public class Coolio {
 	static <T> void shutdown(Ruby runtime, CacheKey key, Consumer<T> fn) {
 		AtomicReference<Optional<T>> ref = getStorage(runtime, key);
 		ref.get().ifPresent(v -> {
-			LOG.info("shutdown BEGIN {} {}", key, v);
+			LOG.debug("shutdown BEGIN {} {}", key, v);
 			fn.accept(v);
-			LOG.info("shutdown END   {} {}", key, v);
+			LOG.debug("shutdown END   {} {}", key, v);
 		});
 	}
 
@@ -92,12 +91,12 @@ public class Coolio {
 
 	public static IRubyObject shutdown(ThreadContext context, IRubyObject self) {
 		Ruby runtime = context.getRuntime();
-		LOG.info("Finalize Cooolio BEGIN");
+		LOG.debug("Finalize Cooolio BEGIN");
 		shutdown(runtime, CacheKey.IO_LOOP);
 		shutdown(runtime, CacheKey.FILE_SENTINEL,
 				(FileSentinel fs) -> fs.stop());
 		shutdown(runtime, CacheKey.WORKER_LOOP);
-		LOG.info("Finalize Cooolio END");
+		LOG.debug("Finalize Cooolio END");
 		return context.nil;
 	}
 }

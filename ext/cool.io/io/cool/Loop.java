@@ -19,7 +19,6 @@ import org.jruby.anno.JRubyMethod;
 import org.jruby.runtime.Visibility;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.util.log.Logger;
-import org.jruby.util.log.LoggerFactory;
 
 /**
  * @author taichi
@@ -28,8 +27,7 @@ public class Loop extends RubyObject {
 
 	private static final long serialVersionUID = 2379379965441404573L;
 
-	private static final Logger LOG = LoggerFactory.getLogger(Loop.class
-			.getName());
+	private static final Logger LOG = Utils.getLogger(Loop.class);
 
 	Lock lock = new ReentrantLock();
 	int numberOfEvents = 0;
@@ -67,7 +65,7 @@ public class Loop extends RubyObject {
 			}
 		}
 
-		LOG.info(
+		LOG.debug(
 				"run_once timeout:{} events:{} running:{} active_watchers:{} watchers:{}",
 				t, numberOfEvents, Utils.getVar(this, "@running"),
 				Utils.getVar(this, "@active_watchers"),

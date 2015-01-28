@@ -63,7 +63,7 @@ namespace :ide do
           x.stringAttribute :key=>'org.eclipse.jdt.launching.MAIN_TYPE', :value=>'org.jruby.Main'
           x.stringAttribute :key=>'org.eclipse.jdt.launching.PROGRAM_ARGUMENTS', :value=>"-S .jruby/rubygems/bin/rspec spec/#{n}_spec.rb"
           x.stringAttribute :key=>'org.eclipse.jdt.launching.PROJECT_ATTR', :value=>'cool.io'
-          x.stringAttribute :key=>'org.eclipse.jdt.launching.VM_ARGUMENTS', :value=>"-Djruby.home=.jruby/jruby-#{JRUBY_VERSION}"
+          x.stringAttribute :key=>'org.eclipse.jdt.launching.VM_ARGUMENTS', :value=>"-Djruby.home=.jruby/jruby-#{JRUBY_VERSION} -Dcool.io.debug=true"
         end
       end
     end

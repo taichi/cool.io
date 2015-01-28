@@ -16,7 +16,6 @@ import org.jruby.runtime.Block;
 import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.util.log.Logger;
-import org.jruby.util.log.LoggerFactory;
 
 /**
  * server.rb on JRuby
@@ -27,8 +26,7 @@ public class Server extends IOWatcher {
 
 	private static final long serialVersionUID = 2524963169711545569L;
 
-	private static final Logger LOG = LoggerFactory.getLogger(Server.class
-			.getName());
+	private static final Logger LOG = Utils.getLogger(Server.class);
 
 	ChannelFuture future;
 
@@ -71,7 +69,7 @@ public class Server extends IOWatcher {
 	public IRubyObject attach(IRubyObject loop) {
 		super.doAttach(loop);
 		java.nio.channels.Channel ch = this.io.getChannel();
-		LOG.info("{}", ch);
+		LOG.debug("{}", ch);
 		if (ch instanceof java.nio.channels.ServerSocketChannel) {
 			register((java.nio.channels.ServerSocketChannel) ch);
 		} else {
@@ -89,7 +87,7 @@ public class Server extends IOWatcher {
 					@Override
 					protected void initChannel(SocketChannel ch)
 							throws Exception {
-						LOG.info("initChannel with accept");
+						LOG.debug("initChannel with accept");
 						IRubyObject sock = makeSocket(ch);
 						ch.pipeline().addLast(new SocketEventDispatcher(sock));
 						ch.closeFuture().addListener(

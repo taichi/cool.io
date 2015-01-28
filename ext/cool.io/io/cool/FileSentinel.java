@@ -19,15 +19,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 
 import org.jruby.util.log.Logger;
-import org.jruby.util.log.LoggerFactory;
 
 /**
  * @author taichi
  */
 class FileSentinel {
 
-	private static final Logger LOG = LoggerFactory
-			.getLogger(FileSentinel.class.getName());
+	private static final Logger LOG = Utils.getLogger(FileSentinel.class);
 
 	WatchService watchService = Utils.newWatchService();
 
@@ -43,34 +41,34 @@ class FileSentinel {
 	}
 
 	public void watch(Path path) {
-		LOG.info("watch {}", path);
+		LOG.debug("watch {}", path);
 		WatchKey key = Utils.watch(this.watchService,
 				Files.isDirectory(path) ? path : path.getParent());
 		keys.putIfAbsent(path, key);
 	}
 
 	public void unwatch(Path path) {
-		LOG.info("unwatch {}", path);
+		LOG.debug("unwatch {}", path);
 		WatchKey key = keys.remove(path);
 		if (key != null) {
 			key.cancel();
-			LOG.info("WatchKey exists and cancelled. {}", path);
+			LOG.debug("WatchKey exists and cancelled. {}", path);
 		}
 	}
 
 	public BiConsumer<Path, WatchEvent<?>> register(
 			BiConsumer<Path, WatchEvent<?>> listener) {
-		LOG.info("register BEGIN {}", listeners.size());
+		LOG.debug("register BEGIN {}", listeners.size());
 		listeners.add(listener);
-		LOG.info("register END   {}", listeners.size());
+		LOG.debug("register END   {}", listeners.size());
 		return listener;
 	}
 
 	public BiConsumer<Path, WatchEvent<?>> unregister(
 			BiConsumer<Path, WatchEvent<?>> listener) {
-		LOG.info("unregister BEGIN {}", listeners.size());
+		LOG.debug("unregister BEGIN {}", listeners.size());
 		listeners.remove(listener);
-		LOG.info("unregister END   {}", listeners.size());
+		LOG.debug("unregister END   {}", listeners.size());
 		return listener;
 	}
 
@@ -100,12 +98,12 @@ class FileSentinel {
 	}
 
 	void dispatch(Path root, WatchEvent<?> event) throws IOException {
-		LOG.info("dispatch {} {}", event.kind().name(), root);
+		LOG.debug("dispatch {} {}", event.kind().name(), root);
 		listeners.stream().forEach(a -> a.accept(root, event));
 	}
 
 	public void stop() {
-		LOG.info("stop {}", running);
+		LOG.debug("stop {}", running);
 		if (running.getAndSet(false)) {
 			keys.values().forEach(k -> k.cancel());
 			keys.clear();

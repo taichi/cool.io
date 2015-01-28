@@ -8,15 +8,13 @@ import java.lang.reflect.Method;
 import java.nio.channels.SelectableChannel;
 
 import org.jruby.util.log.Logger;
-import org.jruby.util.log.LoggerFactory;
 
 /**
  * @author taichi
  */
 class NettyHack {
 
-	private static final Logger LOG = LoggerFactory.getLogger(NettyHack.class
-			.getName());
+	private static final Logger LOG = Utils.getLogger(NettyHack.class);
 
 	public static Method getMethod(Class<?> clazz, String name) {
 		try {

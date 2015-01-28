@@ -10,7 +10,6 @@ import org.jruby.RubyObject;
 import org.jruby.anno.JRubyMethod;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.util.log.Logger;
-import org.jruby.util.log.LoggerFactory;
 
 /**
  * @author taichi
@@ -19,8 +18,7 @@ public class Watcher extends RubyObject {
 
 	private static final long serialVersionUID = -7312205638559031598L;
 
-	private static final Logger LOG = LoggerFactory.getLogger(Watcher.class
-			.getName());
+	private static final Logger LOG = Utils.getLogger(Watcher.class);
 
 	IRubyObject loop = getRuntime().getNil();
 
@@ -59,13 +57,13 @@ public class Watcher extends RubyObject {
 	}
 
 	protected IRubyObject doAttach(IRubyObject arg) {
-		LOG.info("attach BEGIN {} {} {}", Utils.threadName(), this, arg);
+		LOG.debug("attach BEGIN {} {} {}", Utils.threadName(), this, arg);
 		if (arg instanceof Loop) {
 			Loop loop = (Loop) arg;
 			loop.attach(this);
 			this.loop = loop;
 		}
-		LOG.info("attach END   {} {} {}", Utils.threadName(), this, arg);
+		LOG.debug("attach END   {} {} {}", Utils.threadName(), this, arg);
 		return this;
 	}
 
@@ -75,7 +73,7 @@ public class Watcher extends RubyObject {
 	}
 
 	protected IRubyObject doDetach() {
-		LOG.info("detach BEGIN {} {} {}", Utils.threadName(), this, this.loop);
+		LOG.debug("detach BEGIN {} {} {}", Utils.threadName(), this, this.loop);
 		if (this.loop.isNil()) {
 			throw new IllegalStateException("not attached to a loop");
 		}
@@ -83,7 +81,7 @@ public class Watcher extends RubyObject {
 			Loop loop = (Loop) this.loop;
 			loop.detach(this);
 		}
-		LOG.info("detach END {} {} {}", Utils.threadName(), this, this.loop);
+		LOG.debug("detach END {} {} {}", Utils.threadName(), this, this.loop);
 		return this;
 	}
 

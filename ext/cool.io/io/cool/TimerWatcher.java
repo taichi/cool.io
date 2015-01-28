@@ -12,7 +12,6 @@ import org.jruby.RubyNumeric;
 import org.jruby.anno.JRubyMethod;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.util.log.Logger;
-import org.jruby.util.log.LoggerFactory;
 
 /**
  * @author taichi
@@ -21,8 +20,7 @@ public class TimerWatcher extends Watcher {
 
 	private static final long serialVersionUID = 9053518598303171222L;
 
-	static final Logger LOG = LoggerFactory.getLogger(TimerWatcher.class
-			.getName());
+	static final Logger LOG = Utils.getLogger(TimerWatcher.class);
 
 	ScheduledFuture<?> currentFuture; // TODO need lock?
 
@@ -34,7 +32,7 @@ public class TimerWatcher extends Watcher {
 	public IRubyObject initialize(IRubyObject interval, IRubyObject repeating) {
 		double d = RubyNumeric.num2dbl(interval);
 		boolean is = repeating.isTrue();
-		LOG.info("{} {}", d, is);
+		LOG.debug("{} {}", d, is);
 		if (d < 0) {
 			throw getRuntime().newArgumentError(
 					"interval must be positive value");

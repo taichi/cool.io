@@ -18,7 +18,6 @@ import org.jruby.RubyIO;
 import org.jruby.anno.JRubyMethod;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.util.log.Logger;
-import org.jruby.util.log.LoggerFactory;
 
 /**
  * @author taichi
@@ -27,8 +26,7 @@ public class IOWatcher extends Watcher {
 
 	private static final long serialVersionUID = -9155305357984430840L;
 
-	private static final Logger LOG = LoggerFactory.getLogger(IOWatcher.class
-			.getName());
+	private static final Logger LOG = Utils.getLogger(IOWatcher.class);
 
 	RubyIO io;
 	int interestOps = SelectionKey.OP_READ;
@@ -69,7 +67,7 @@ public class IOWatcher extends Watcher {
 	public IRubyObject attach(IRubyObject arg) throws IOException {
 		super.doAttach(arg);
 		java.nio.channels.Channel ch = this.io.getChannel();
-		LOG.info("{}", ch);
+		LOG.debug("{}", ch);
 		if (ch instanceof DatagramChannel) {
 			DatagramChannel dc = (DatagramChannel) ch;
 			register(dc);

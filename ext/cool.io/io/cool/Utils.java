@@ -34,7 +34,15 @@ import org.jruby.util.log.LoggerFactory;
  */
 public interface Utils {
 
-	static final Logger LOG = LoggerFactory.getLogger(Utils.class.getName());
+	static final boolean debug = Boolean.getBoolean("cool.io.debug");
+
+	static final Logger LOG = Utils.getLogger(Utils.class);
+
+	static Logger getLogger(Class<?> clazz) {
+		Logger l = LoggerFactory.getLogger(clazz.getName());
+		l.setDebugEnable(debug);
+		return l;
+	}
 
 	static RubyClass defineClass(Ruby runtime, Class<?> cls, ObjectAllocator oa) {
 		return defineClass(runtime, runtime.getObject(), cls, oa);
@@ -66,14 +74,14 @@ public interface Utils {
 	static IRubyObject getVar(IRubyObject ro, String key) {
 		InstanceVariables vars = ro.getInstanceVariables();
 		IRubyObject result = vars.getInstanceVariable(key);
-		LOG.info("getVar {} {}", key, result);
+		LOG.debug("getVar {} {}", key, result);
 		return result;
 	}
 
 	static <T extends IRubyObject> T setVar(IRubyObject ro, String key, T value) {
 		InstanceVariables vars = ro.getInstanceVariables();
 		vars.setInstanceVariable(key, value);
-		LOG.info("setVar {} {}", key, value);
+		LOG.debug("setVar {} {}", key, value);
 		return value;
 	}
 

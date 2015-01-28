@@ -26,7 +26,6 @@ import org.jruby.runtime.Arity;
 import org.jruby.runtime.Block;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.util.log.Logger;
-import org.jruby.util.log.LoggerFactory;
 
 /**
  * @author taichi
@@ -35,8 +34,7 @@ public class StatWatcher extends Watcher {
 
 	private static final long serialVersionUID = 4387711551695038606L;
 
-	static final Logger LOG = LoggerFactory.getLogger(StatWatcher.class
-			.getName());
+	static final Logger LOG = Utils.getLogger(StatWatcher.class);
 
 	public static final String STAT_INFO = "StatInfo";
 
@@ -99,7 +97,7 @@ public class StatWatcher extends Watcher {
 		DynamicMethod method = getMetaClass().searchMethod("on_change");
 		Arity.TWO_REQUIRED.checkArity(getRuntime(), method.getArity()
 				.getValue());
-		LOG.info("{} {}", this, getWatchFilePath());
+		LOG.debug("{} {}", this, getWatchFilePath());
 
 		super.doAttach(loop);
 
@@ -118,9 +116,10 @@ public class StatWatcher extends Watcher {
 		if (loop instanceof Loop) {
 			Loop lp = (Loop) loop;
 			lp.supply(l -> {
-				LOG.info("BEGIN run in worker {} {}", event.kind().name(), root);
+				LOG.debug("BEGIN run in worker {} {}", event.kind().name(),
+						root);
 				Path resolved = root.resolve(Path.class.cast(event.context()));
-				LOG.info("watch target {} resolved path {}",
+				LOG.debug("watch target {} resolved path {}",
 						getWatchFilePath(), resolved);
 				if (resolved.equals(getWatchFilePath())) {
 					final IRubyObject current;
@@ -132,7 +131,7 @@ public class StatWatcher extends Watcher {
 					IRubyObject prev = this.previous.getAndUpdate(p -> current);
 					callMethod("on_change", prev, current);
 				}
-				LOG.info("END run in worker {} {}", event.kind().name(), root);
+				LOG.debug("END run in worker {} {}", event.kind().name(), root);
 			});
 		}
 
