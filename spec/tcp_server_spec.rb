@@ -125,7 +125,7 @@ describe Coolio::TCPServer do
   end
 
   it '#run(timeout)' do
-    test_run_timeout("hello").should == "hello"
+    test_run_timeout("hello", 0.1).should == "hello"
   end
 
 end
