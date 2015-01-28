@@ -11,7 +11,9 @@ rvm:
 jdk:
   - oraclejdk8
 
-env: JARS_VERBOSE=true
+env: 
+  - JARS_VERBOSE=true
+  - cool.io.debug=true
 
 matrix:
   allow_failures:
