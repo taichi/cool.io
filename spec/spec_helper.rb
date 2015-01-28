@@ -18,4 +18,9 @@ RSpec.configure do |c|
     $stderr.puts "Skip some specs on Windows"
     c.filter_run_excluding :env => :exclude_win
   end
+
+  if jruby?
+    $stderr.puts "Skip some specs on JRuby"
+    c.filter_run_excluding :env => :exclude_jruby
+  end
 end

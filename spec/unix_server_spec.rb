@@ -1,7 +1,7 @@
 require File.expand_path('../spec_helper', __FILE__)
 require 'tempfile'
 
-describe Cool.io::UNIXServer, :env => :exclude_win do
+describe Cool.io::UNIXServer, :env => [:exclude_win, :exclude_jruby] do
 
   before :each do
     @tmp = Tempfile.new('coolio_unix_server_spec')
