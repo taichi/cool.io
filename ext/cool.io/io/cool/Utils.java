@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.util.Objects;
 import java.util.function.BiFunction;
 
 import org.jruby.Ruby;
@@ -34,9 +35,16 @@ import org.jruby.util.log.LoggerFactory;
  */
 public interface Utils {
 
-	static final boolean debug = Boolean.getBoolean("cool.io.debug");
+	static final boolean debug = isDebug();
 
 	static final Logger LOG = Utils.getLogger(Utils.class);
+
+	static boolean isDebug() {
+		String key = "cool.io.debug";
+		return Boolean.getBoolean(key)
+				|| Boolean.parseBoolean(Objects.toString(System.getenv(key),
+						"false"));
+	}
 
 	static Logger getLogger(Class<?> clazz) {
 		Logger l = LoggerFactory.getLogger(clazz.getName());
