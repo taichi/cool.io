@@ -41,7 +41,7 @@ public class StatWatcher extends Watcher {
 	public static final String STAT_INFO = "StatInfo";
 
 	final AtomicReference<IRubyObject> previous = new AtomicReference<>(
-			getRuntime().getNil());
+			makeEmptyStatInfo());
 	Path watchFilePath;
 	BiConsumer<Path, WatchEvent<?>> listener;
 
