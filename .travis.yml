@@ -6,7 +6,6 @@ rvm:
   - 2.1
   - ruby-head
   - jruby-19mode
-  - jruby-head
   - rbx
 
 jdk:
