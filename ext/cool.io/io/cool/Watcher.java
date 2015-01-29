@@ -20,6 +20,8 @@ public class Watcher extends RubyObject {
 
 	private static final Logger LOG = Utils.getLogger(Watcher.class);
 
+	boolean enabled = false;
+
 	IRubyObject loop = getRuntime().getNil();
 
 	public static void load(Ruby runtime) throws IOException {
@@ -63,6 +65,7 @@ public class Watcher extends RubyObject {
 			loop.attach(this);
 			this.loop = loop;
 		}
+		this.enabled = true;
 		LOG.debug("attach END   {} {} {}", Utils.threadName(), this, arg);
 		return this;
 	}
@@ -81,6 +84,7 @@ public class Watcher extends RubyObject {
 			Loop loop = (Loop) this.loop;
 			loop.detach(this);
 		}
+		this.enabled = false;
 		LOG.debug("detach END {} {} {}", Utils.threadName(), this, this.loop);
 		return this;
 	}
@@ -103,20 +107,25 @@ public class Watcher extends RubyObject {
 		}
 	}
 
-	// TODO not implemented.
-
 	@JRubyMethod
 	public IRubyObject enable() {
-		return getRuntime().getNil();
+		if (this.enabled) {
+			throw getRuntime().newRuntimeError("already enabled");
+		}
+		this.enabled = true;
+		return this;
 	}
 
 	@JRubyMethod
 	public IRubyObject disable() {
-		return getRuntime().getNil();
+		if (this.enabled == false) {
+			throw getRuntime().newRuntimeError("already disabled");
+		}
+		return this;
 	}
 
 	@JRubyMethod(name = "enabled?")
 	public IRubyObject isEnabled() {
-		return getRuntime().getNil();
+		return this.enabled ? getRuntime().getTrue() : getRuntime().getFalse();
 	}
 }
