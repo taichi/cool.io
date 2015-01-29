@@ -1,8 +1,5 @@
 package io.cool;
 
-import io.netty.channel.EventLoopGroup;
-import io.netty.util.concurrent.Future;
-
 import java.io.IOException;
 import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.Files;
@@ -13,6 +10,8 @@ import java.nio.file.WatchService;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -29,14 +28,14 @@ class FileSentinel {
 
 	WatchService watchService = Utils.newWatchService();
 
-	final EventLoopGroup eventLoop;
+	final ExecutorService eventLoop;
 	final ConcurrentMap<Path, WatchKey> keys = new ConcurrentHashMap<>();
 	final CopyOnWriteArrayList<BiConsumer<Path, WatchEvent<?>>> listeners = new CopyOnWriteArrayList<BiConsumer<Path, WatchEvent<?>>>();
 
 	final AtomicBoolean running = new AtomicBoolean(false);
 	Future<?> future;
 
-	public FileSentinel(EventLoopGroup watcherLoop) {
+	public FileSentinel(ExecutorService watcherLoop) {
 		this.eventLoop = watcherLoop;
 	}
 
@@ -90,6 +89,8 @@ class FileSentinel {
 					key.reset();
 				}
 			}
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
 		} catch (ClosedWatchServiceException | RejectedExecutionException e) {
 			LOG.debug("any time no problem.", e);
 		} catch (Exception e) {
@@ -108,8 +109,7 @@ class FileSentinel {
 			keys.values().forEach(k -> k.cancel());
 			keys.clear();
 
-			if (future != null && future.isCancellable()
-					&& future.isDone() == false) {
+			if (future != null && future.isDone() == false) {
 				future.cancel(true);
 			}
 			Utils.close(watchService);

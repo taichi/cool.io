@@ -83,7 +83,7 @@ public class Loop extends RubyObject {
 
 	@JRubyMethod(name = "run_nonblock")
 	public IRubyObject runNonBlock() {
-		Coolio.getWorkerLoop(getRuntime()).submit(new Callable<Void>() {
+		Coolio.getWorkerPool(getRuntime()).submit(new Callable<Void>() {
 			@Override
 			public Void call() throws Exception {
 				events.take().accept(Loop.this);

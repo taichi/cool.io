@@ -1,9 +1,8 @@
 package io.cool;
 
-import io.netty.util.concurrent.EventExecutorGroup;
-import io.netty.util.concurrent.ScheduledFuture;
-
 import java.math.BigDecimal;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.jruby.Ruby;
@@ -66,8 +65,7 @@ public class TimerWatcher extends Watcher {
 	}
 
 	void cancel() {
-		if (currentFuture != null && currentFuture.isDone() == false
-				&& currentFuture.isCancellable()) {
+		if (currentFuture != null && currentFuture.isDone() == false) {
 			currentFuture.cancel(true);
 		}
 	}
@@ -80,13 +78,14 @@ public class TimerWatcher extends Watcher {
 		long delay = bd.longValue();
 
 		IRubyObject repeating = Utils.getVar(this, "@repeating");
-		EventExecutorGroup group = Coolio.getWorkerLoop(getRuntime());
-		LOG.debug("schedule {} delay:{} repeating:{}", getMetaClass(), delay, repeating);
+		ScheduledExecutorService pool = Coolio.getWorkerPool(getRuntime());
+		LOG.debug("schedule {} delay:{} repeating:{}", getMetaClass(), delay,
+				repeating);
 		if (repeating.isTrue()) {
-			currentFuture = group.scheduleAtFixedRate(this::callOnTimer, delay,
+			currentFuture = pool.scheduleAtFixedRate(this::callOnTimer, delay,
 					delay, TimeUnit.MILLISECONDS);
 		} else {
-			currentFuture = group.schedule(this::callOnTimer, delay,
+			currentFuture = pool.schedule(this::callOnTimer, delay,
 					TimeUnit.MILLISECONDS);
 		}
 	}
