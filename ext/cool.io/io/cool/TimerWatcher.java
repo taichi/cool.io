@@ -52,9 +52,16 @@ public class TimerWatcher extends Watcher {
 	}
 
 	void callOnTimer() {
+		LOG.debug("callOnTimer {} {}", getMetaClass(), this.loop);
 		if (this.loop instanceof Loop) {
 			Loop lp = (Loop) this.loop;
-			lp.supply(l -> callMethod("on_timer"));
+			lp.supply(l -> {
+				LOG.debug("supply {} {}", getMetaClass(),
+						currentFuture.isCancelled());
+				if (currentFuture.isCancelled() == false) {
+					callMethod("on_timer");
+				}
+			});
 		}
 	}
 
@@ -74,6 +81,7 @@ public class TimerWatcher extends Watcher {
 
 		IRubyObject repeating = Utils.getVar(this, "@repeating");
 		EventExecutorGroup group = Coolio.getWorkerLoop(getRuntime());
+		LOG.debug("schedule {} delay:{} repeating:{}", getMetaClass(), delay, repeating);
 		if (repeating.isTrue()) {
 			currentFuture = group.scheduleAtFixedRate(this::callOnTimer, delay,
 					delay, TimeUnit.MILLISECONDS);
