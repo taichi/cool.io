@@ -40,10 +40,9 @@ public interface Utils {
 	static final Logger LOG = Utils.getLogger(Utils.class);
 
 	static boolean isDebug() {
-		String key = "cool.io.debug";
-		return Boolean.getBoolean(key)
-				|| Boolean.parseBoolean(Objects.toString(System.getenv(key),
-						"false"));
+		return Boolean.getBoolean("cool.io.debug")
+				|| Boolean.parseBoolean(Objects.toString(
+						System.getenv("COOL_IO_DEBUG"), "false"));
 	}
 
 	static Logger getLogger(Class<?> clazz) {

@@ -12,7 +12,7 @@ jdk:
   - oraclejdk8
 
 env: 
-  - JARS_VERBOSE=true cool.io.debug=true
+  - JARS_VERBOSE=true COOL_IO_DEBUG=true
 
 matrix:
   allow_failures:
