@@ -21,10 +21,7 @@ describe Coolio::TCPSocket do
             next
           end
           unless s.eof?
-            puts "try to read on server"
-            str = s.read 1
-            puts "read #{str}"
-            s.write(str)
+            s.write(s.read_nonblock 1)
           end
         end
       end
@@ -90,11 +87,12 @@ describe Coolio::TCPSocket do
         @times = 0
       end
       def on_read(data)
-        puts "on_read #{data}"
         @read_data += data
         @times += 1
         if @times < 5
           write "#{@times}"
+        else
+          close
         end
       end
     end
@@ -105,12 +103,11 @@ describe Coolio::TCPSocket do
       loop.run_once # on_connect
       c.write "0"
       loop.run_once # flush_buffer
-      5.times do
+      10.times do # 2(readwatcher + writewatcher) * 5
         loop.run_once # on_read
       end
-      expect(c.times).to eq 4
+      expect(c.times).to eq 5
       expect(c.read_data).to eq "01234"
-      c.close
     end
   end
 end
