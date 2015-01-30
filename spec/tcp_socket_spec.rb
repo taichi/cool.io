@@ -85,9 +85,6 @@ describe Coolio::TCPSocket do
   context "#on_read" do
     class OnRead < Cool.io::TCPSocket
       attr :read_data, :times
-      def on_connect
-        write "0\0"
-      end
       def on_read(data)
         puts "on_read ${data}"
         read_data += data
@@ -99,11 +96,14 @@ describe Coolio::TCPSocket do
       end
     end
     
-    xit "receive 5 times" do
+    it "receive 5 times" do
       c = OnRead.connect(@host, @port)
       loop.attach c
-      10.times do
-        loop.run_once
+      loop.run_once # on_connect
+      c.write "0"
+      loop.run_once # flush_buffer
+      5.times do
+        loop.run_once # on_read
       end
       expect(c.times).to eq 4
       expect(c.read_data).to eq "01234"
