@@ -20,11 +20,11 @@ describe Coolio::TCPSocket do
             socks.push s.accept
             next
           end
-          if s.eof?
-            s.close
-            socks.delete s
-          else
-            s.write s.gets
+          unless s.eof?
+            puts "try to read on server"
+            str = s.read 1
+            puts "read #{str}"
+            s.write(str)
           end
         end
       end
@@ -91,7 +91,6 @@ describe Coolio::TCPSocket do
         @times += 1
         if @times < 5
           write "${@times}"
-          write ""
         end
       end
     end
