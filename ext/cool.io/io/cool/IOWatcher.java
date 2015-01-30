@@ -130,7 +130,9 @@ public class IOWatcher extends Watcher {
 	}
 
 	void dispatch(String event) {
+		LOG.debug("dispatch {}", event);
 		dispatch(l -> {
+			LOG.debug("accept dispatch {} {}", event, getMetaClass());
 			this.callMethod(event);
 		});
 	}

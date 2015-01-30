@@ -76,6 +76,8 @@ public class Loop extends RubyObject {
 			doLock(l -> {
 				ev.accept(this);
 				numberOfEvents--;
+				LOG.debug("accepted thread:{} events:{}", Utils.threadName(),
+						numberOfEvents);
 			});
 		}
 		return RubyNumeric.int2fix(getRuntime(), this.numberOfEvents);
@@ -101,6 +103,7 @@ public class Loop extends RubyObject {
 		doLock(l -> {
 			numberOfEvents++;
 			this.events.add(event);
+			LOG.debug("supply {} {}", Utils.threadName(), numberOfEvents);
 		});
 	}
 
