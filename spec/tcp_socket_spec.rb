@@ -87,6 +87,7 @@ describe Coolio::TCPSocket do
       attr :read_data, :times
       def on_connect
         @read_data = ""
+        @times = 0
       end
       def on_read(data)
         puts "on_read #{data}"
