@@ -41,7 +41,7 @@ describe Coolio::TCPSocket do
   end
 
   context "#close" do
-    xit "detaches all watchers on #close before loop#run" do
+    it "detaches all watchers on #close before loop#run" do
       client = Coolio::TCPSocket.connect(@host, @port)
       loop.attach client
       client.close
@@ -50,33 +50,32 @@ describe Coolio::TCPSocket do
   end
 
   context "#on_connect" do
-    class CC < Cool.io::TCPSocket
-      attr_accessor :connected
+    class OnConnect < Cool.io::TCPSocket
+      attr :connected
       def on_connect
         @connected = true
       end
     end
     
     it "connected client called on_connect" do
-      c = CC.connect(@host, @port)
+      c = OnConnect.connect(@host, @port)
       loop.attach c
       loop.run_once
-      sleep 1
       expect(c.connected).to eq true
       c.close
     end
   end
   
   context "#on_close" do
-    class CC < Cool.io::TCPSocket
-      attr_accessor :closed
+    class OnClose < Cool.io::TCPSocket
+      attr :closed
       def on_close
         @closed = true
       end
     end
   
-    xit "disconnected client called on_close" do
-      c = CC.connect(@host, @port)
+    it "disconnected client called on_close" do
+      c = OnClose.connect(@host, @port)
       loop.attach c
       c.close
       expect(c.closed).to eq true
@@ -84,8 +83,8 @@ describe Coolio::TCPSocket do
   end
   
   context "#on_read" do
-    class CC < Cool.io::TCPSocket
-      attr_accessor :read_data, :times
+    class OnRead < Cool.io::TCPSocket
+      attr :read_data, :times
       def on_connect
         write "0\0"
       end
@@ -101,7 +100,7 @@ describe Coolio::TCPSocket do
     end
     
     xit "receive 5 times" do
-      c = CC.connect(@host, @port)
+      c = OnRead.connect(@host, @port)
       loop.attach c
       10.times do
         loop.run_once
