@@ -68,7 +68,28 @@ describe Coolio::TCPSocket do
       c.close
     end
   end
-  
+
+  context "#on_connect_failed" do
+    class OnConnectFailed < Cool.io::TCPSocket
+      attr :connect_failed
+      def on_connect_failed
+        @connect_failed = true
+      end
+    end
+    
+    it "try to connect dead host" do
+      serv = TCPServer.new(0)
+      dead_host = serv.addr[3]
+      dead_port = serv.addr[1]
+      serv.close
+      
+      c = OnConnectFailed.connect(dead_host, dead_port)
+      loop.attach c
+      loop.run_once # on_connect_failed
+      expect(c.connect_failed).to eq true
+    end
+  end
+
   context "#on_close" do
     class OnClose < Cool.io::TCPSocket
       attr :closed
