@@ -85,12 +85,15 @@ describe Coolio::TCPSocket do
   context "#on_read" do
     class OnRead < Cool.io::TCPSocket
       attr :read_data, :times
+      def on_connect
+        @read_data = ""
+      end
       def on_read(data)
-        puts "on_read ${data}"
-        read_data += data
+        puts "on_read #{data}"
+        @read_data += data
         @times += 1
         if @times < 5
-          write "${@times}"
+          write "#{@times}"
         end
       end
     end
