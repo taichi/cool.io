@@ -32,9 +32,15 @@ describe Coolio::TCPSocket do
     end
   end
   
+  def shutdown
+    if @running
+      @running = false
+      @echo_thread.join
+    end
+  end
+  
   after :each do
-    @running = false
-    @echo_thread.join
+    shutdown
   end
 
   context "#close" do
@@ -70,12 +76,29 @@ describe Coolio::TCPSocket do
         @closed = true
       end
     end
-  
-    it "disconnected client called on_close" do
-      c = OnClose.connect(@host, @port)
-      loop.attach c
-      c.close
-      expect(c.closed).to eq true
+    
+    let :client do
+      OnClose.connect(@host, @port)
+    end
+    
+    before :each do
+      loop.attach client
+      loop.run_once # on_connect
+      client.write "0"
+      loop.run_once # flush_buffer
+      loop.run_once # wait for accept
+    end
+    
+    it "disconnect from client" do
+      client.close
+      loop.run_once # on_close
+      expect(client.closed).to eq true
+    end
+
+    it "disconnect from server" do
+      shutdown
+      loop.run_once # on_close
+      expect(client.closed).to eq true
     end
   end
   
