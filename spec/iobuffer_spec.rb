@@ -96,10 +96,10 @@ describe IO::Buffer do
       context "using udp socket" do
         before do
           @receiver = UDPSocket.open
-          @receiver.bind nil, 10000
+          @receiver.bind nil, 0
           
           @sender = UDPSocket.open
-          @sender.connect "127.0.0.1", 10000
+          @sender.connect @receiver.addr[3], @receiver.addr[1]
         end
         after do
           @receiver.close
