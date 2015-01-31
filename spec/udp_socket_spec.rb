@@ -16,7 +16,6 @@ describe "Coolio::UDPSocket" do
         begin
           msg, sender = @echo.recvfrom_nonblock(3)
           @echo.send(msg + "bbb", 0, sender[3], sender[1])
-          @running = false
         rescue IO::WaitReadable
         end
         Thread.pass
@@ -42,13 +41,15 @@ describe "Coolio::UDPSocket" do
     end
   end
   
-  it "receive message #on_readable" do
-    r = Readable.new
-    r.socket.send "aaa", 0, "localhost", @port
-    
-    loop.attach r
-    loop.run_once
-    expect(r.received).to eq "aaabbb"
-    r.detach
+  it "receive message #on_readable 10 times" do
+    10.times do
+      r = Readable.new
+      r.socket.send "aaa", 0, "localhost", @port
+      
+      loop.attach r
+      loop.run_once
+      expect(r.received).to eq "aaabbb"
+      r.detach
+    end
   end
 end
