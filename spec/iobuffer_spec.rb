@@ -99,7 +99,7 @@ describe IO::Buffer do
           @receiver.bind nil, 0
           
           @sender = UDPSocket.open
-          @sender.connect @receiver.addr[3], @receiver.addr[1]
+          @sender.connect "localhost", @receiver.addr[1]
         end
         after do
           @receiver.close

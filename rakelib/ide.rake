@@ -47,7 +47,7 @@ namespace :ide do
   
   task :launchers do
     mkdir_p 'launcher'
-    %w(dns iobuffer stat_watcher tcp_server tcp_socket timer_watcher).each do |n|
+    %w(dns iobuffer stat_watcher tcp_server tcp_socket timer_watcher udp_socket).each do |n|
       xml "launcher/#{n}_spec.launch", :standalone=>'no' do |x|
         x.launchConfiguration :type=>'org.eclipse.jdt.launching.localJavaApplication' do
           x.listAttribute :key=>'org.eclipse.debug.core.MAPPED_RESOURCE_PATHS' do

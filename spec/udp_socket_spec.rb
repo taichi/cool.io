@@ -8,7 +8,6 @@ describe "Coolio::UDPSocket" do
   before :each do
     @echo = UDPSocket.open
     @echo.bind nil, 0
-    @host = @echo.addr[3]
     @port = @echo.addr[1]
     
     @running = true
@@ -45,7 +44,7 @@ describe "Coolio::UDPSocket" do
   
   it "receive message #on_readable" do
     r = Readable.new
-    r.socket.send "aaa", 0, @host, @port
+    r.socket.send "aaa", 0, "localhost", @port
     
     loop.attach r
     loop.run_once
