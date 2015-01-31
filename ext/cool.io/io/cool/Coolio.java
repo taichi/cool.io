@@ -1,13 +1,10 @@
 package io.cool;
 
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.local.LocalEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -60,6 +57,12 @@ public class Coolio {
 		return storage;
 	}
 
+	static void shutdown(Ruby runtime, CacheKey key) {
+		shutdown(runtime, key, (EventLoopGroup g) -> {
+			g.shutdownGracefully().awaitUninterruptibly();
+		});
+	}
+
 	static <T> void shutdown(Ruby runtime, CacheKey key, Consumer<T> fn) {
 		AtomicReference<Optional<T>> ref = getStorage(runtime, key);
 		ref.get().ifPresent(v -> {
@@ -75,13 +78,10 @@ public class Coolio {
 				NioEventLoopGroup::new);
 	}
 
-	static final int DEFAULT_WORKERPOOL_SIZE = Runtime.getRuntime()
-			.availableProcessors() * 2;
-
-	public static ScheduledExecutorService getWorkerPool(Ruby runtime) {
+	public static EventLoopGroup getWorkerPool(Ruby runtime) {
 		// TODO how many workers do we need?
 		return computeIfAbsent(runtime, CacheKey.WORKER_POOL,
-				() -> Executors.newScheduledThreadPool(DEFAULT_WORKERPOOL_SIZE));
+				LocalEventLoopGroup::new);
 	}
 
 	public static FileSentinel getFileSentinel(Ruby runtime) {
@@ -92,23 +92,10 @@ public class Coolio {
 	public static IRubyObject shutdown(ThreadContext context, IRubyObject self) {
 		Ruby runtime = context.getRuntime();
 		LOG.debug("Finalize Cooolio BEGIN");
-		shutdown(runtime, CacheKey.IO_LOOP, (EventLoopGroup g) -> {
-			g.shutdownGracefully().awaitUninterruptibly();
-		});
+		shutdown(runtime, CacheKey.IO_LOOP);
 		shutdown(runtime, CacheKey.FILE_SENTINEL,
 				(FileSentinel fs) -> fs.stop());
-		shutdown(runtime, CacheKey.WORKER_POOL, (ExecutorService es) -> {
-			es.shutdown();
-			try {
-				if (es.awaitTermination(10, TimeUnit.MILLISECONDS) == false) {
-					es.shutdownNow();
-					es.awaitTermination(10, TimeUnit.MILLISECONDS);
-				}
-			} catch (InterruptedException e) {
-				es.shutdownNow();
-				Thread.currentThread().interrupt();
-			}
-		});
+		shutdown(runtime, CacheKey.WORKER_POOL);
 
 		LOG.debug("Finalize Cooolio END");
 		return context.nil;
