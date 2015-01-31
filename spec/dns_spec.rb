@@ -16,7 +16,7 @@ class ConnectorThingy < Cool.io::TCPSocket
   end
 end
 
-describe "DNS", :env => :exclude_jruby do
+describe "DNS" do
   before :each do
     @loop = Cool.io::Loop.new
   end
