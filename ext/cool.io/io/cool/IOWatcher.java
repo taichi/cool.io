@@ -185,6 +185,10 @@ public class IOWatcher extends Watcher {
 			try {
 				this.callMethod(event);
 			} finally {
+				// c実装ではwatcher.cのdetachでloopの中に抱え込んだイベントのうち
+				// 当該watcherに関係のあるものだけをフィルタリングして消しているが、
+				// Java実装ではそこで削除されるイベントの数が簡単に10000単位になるので、
+				// semaphoreを使ってそもそもイベントをスタックしない。
 				semaphore.release();
 			}
 		});
