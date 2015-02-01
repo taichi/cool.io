@@ -20,8 +20,11 @@ describe Coolio::TCPSocket do
             socks.push s.accept
             next
           end
-          unless s.eof?
-            s.write(s.read_nonblock 1)
+          begin
+            unless s.eof?
+              s.write(s.read_nonblock 1)
+            end
+          rescue IOError
           end
         end
       end
