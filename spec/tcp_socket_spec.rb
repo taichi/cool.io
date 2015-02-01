@@ -94,10 +94,10 @@ describe Coolio::TCPSocket do
   end
 
   context "#on_close" do
+    class Closed < StandardError; end
     class OnClose < Cool.io::TCPSocket
-      attr :closed
       def on_close
-        @closed = true
+        raise Closed
       end
     end
     
@@ -114,15 +114,12 @@ describe Coolio::TCPSocket do
     end
     
     it "disconnect from client" do
-      client.close
-      loop.run_once # on_close
-      expect(client.closed).to eq true
+      expect { client.close }.to raise_error(Closed)
     end
 
     it "disconnect from server" do
       shutdown
-      loop.run_once # on_close
-      expect(client.closed).to eq true
+      expect { loop.run }.to raise_error(Closed)
     end
   end
   
