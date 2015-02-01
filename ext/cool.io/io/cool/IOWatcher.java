@@ -98,18 +98,14 @@ public class IOWatcher extends Watcher {
 			@Override
 			public void channelActive(ChannelHandlerContext ctx)
 					throws Exception {
-				if (semaphore.tryAcquire()) {
-					dispatch(SelectionKey.OP_WRITE, semaphore);
-				}
+				dispatch(SelectionKey.OP_WRITE, semaphore);
 			}
 
 			@Override
 			public void channelRead(ChannelHandlerContext ctx, Object msg)
 					throws Exception {
 				ch.config().setAutoRead(false);
-				if (semaphore.tryAcquire()) {
-					dispatch(SelectionKey.OP_READ, semaphore);
-				}
+				dispatch(SelectionKey.OP_READ, semaphore);
 			}
 
 			@Override
@@ -118,15 +114,14 @@ public class IOWatcher extends Watcher {
 				ch.config().setAutoRead(true);
 			}
 		});
+		ch.closeFuture().addListener(f -> dispatch("close", semaphore));
 		if (sc.isConnectionPending()) {
 			if (sc.finishConnect()) {
 				Utils.setVar(this, "@so_error", RubyFixnum.zero(getRuntime()));
 			} else {
 				Utils.setVar(this, "@so_error", RubyFixnum.one(getRuntime()));
 			}
-			if (semaphore.tryAcquire()) {
-				dispatch(SelectionKey.OP_WRITE, semaphore);
-			}
+			dispatch(SelectionKey.OP_WRITE, semaphore);
 		}
 		future = Coolio.getIoLoop(getRuntime()).register(ch);
 	}
@@ -140,9 +135,7 @@ public class IOWatcher extends Watcher {
 		@Override
 		public void channelReady(SelectableChannel ch, SelectionKey key)
 				throws Exception {
-			if (semaphre.tryAcquire()) { // wait for the worker
-				dispatch(key.readyOps(), semaphre);
-			}
+			dispatch(key.readyOps(), semaphre);
 			this.lastKey = key;
 		}
 
@@ -184,17 +177,20 @@ public class IOWatcher extends Watcher {
 	}
 
 	void dispatch(String event, Semaphore semaphore) {
-		dispatch(l -> {
-			try {
-				this.callMethod(event);
-			} finally {
-				// c実装ではwatcher.cのdetachでloopの中に抱え込んだイベントのうち
-				// 当該watcherに関係のあるものだけをフィルタリングして消しているが、
-				// Java実装ではそこで削除されるイベントの数が簡単に10000単位になるので、
-				// semaphoreを使ってそもそもイベントをスタックしない。
-				semaphore.release();
-			}
-		});
+		// c実装ではwatcher.cのdetachでloopの中に抱え込んだイベントのうち
+		// 当該watcherに関係のあるものだけをフィルタリングして消している。
+		// Java実装ではChannelからデータを読み取らない限りSelectorからイベントが配信され続ける。
+		// これによって残タスク数が簡単に数万になってしまうので、semaphoreを使ってそもそもイベントをスタックしないようにしている。
+		// これによってRubyコード側の処理性能に全体的な性能が引っ張られてしまう。
+		if (semaphore.tryAcquire()) {
+			dispatch(l -> {
+				try {
+					this.callMethod(event);
+				} finally {
+					semaphore.release();
+				}
+			});
+		}
 	}
 
 	@JRubyMethod(name = "on_readable")
