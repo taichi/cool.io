@@ -75,7 +75,8 @@ public class IOWatcher extends Watcher {
 	public IRubyObject attach(IRubyObject arg) throws IOException {
 		super.doAttach(arg);
 		java.nio.channels.Channel ch = this.io.getChannel();
-		LOG.debug("attach {} {}", ch, getMetaClass());
+		LOG.debug("attach {} {}#{}", getMetaClass(), ch,
+				System.identityHashCode(ch));
 		if (ch instanceof DatagramChannel) {
 			DatagramChannel dc = (DatagramChannel) ch;
 			register(dc);
@@ -146,9 +147,13 @@ public class IOWatcher extends Watcher {
 		public void channelUnregistered(SelectableChannel ch, Throwable cause)
 				throws Exception {
 			if (cause == null) {
-				LOG.debug("channelUnregistered {}", ch);
+				LOG.debug("channelUnregistered {} {}#{} {}",
+						Utils.threadName(), ch, System.identityHashCode(ch),
+						ch.isRegistered());
 			} else {
-				LOG.debug("channelUnregistered {} {}", ch, cause);
+				LOG.debug("channelUnregistered {} {}#{} {}",
+						Utils.threadName(), ch, System.identityHashCode(ch),
+						cause);
 			}
 		}
 	}
@@ -202,7 +207,8 @@ public class IOWatcher extends Watcher {
 	@JRubyMethod
 	@Override
 	public IRubyObject detach() {
-		LOG.debug("detach " + getMetaClass());
+		LOG.debug("detach {}", getMetaClass());
+
 		if (this.task != null) {
 			SelectionKey sk = this.task.lastKey;
 			if (sk != null && sk.isValid()) {
@@ -211,6 +217,7 @@ public class IOWatcher extends Watcher {
 			}
 		}
 		if (this.future != null) {
+			LOG.debug("Channel#deregister {}", getMetaClass());
 			this.future.awaitUninterruptibly().channel().deregister();
 		}
 		return super.detach();
