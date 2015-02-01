@@ -106,7 +106,7 @@ public class IOWatcher extends Watcher {
 			public void channelActive(ChannelHandlerContext ctx)
 					throws Exception {
 				if (semaphore.tryAcquire()) {
-					dispatch("on_writable", semaphore);
+					dispatch(SelectionKey.OP_WRITE, semaphore);
 				}
 			}
 
@@ -115,7 +115,7 @@ public class IOWatcher extends Watcher {
 					throws Exception {
 				ch.config().setAutoRead(false);
 				if (semaphore.tryAcquire()) {
-					dispatch("on_readable", semaphore);
+					dispatch(SelectionKey.OP_READ, semaphore);
 				}
 			}
 
