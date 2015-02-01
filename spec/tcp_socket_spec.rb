@@ -152,6 +152,8 @@ describe Coolio::TCPSocket do
       end
       expect(c.times).to eq 5
       expect(c.read_data).to eq "01234"
+      
+      c.close
     end
   end
 end
