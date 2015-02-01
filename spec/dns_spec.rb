@@ -22,18 +22,22 @@ describe "DNS" do
   end
   
   it "connects to valid domains" do
-    ConnectorThingy.connect(VALID_DOMAIN, 80).attach(@loop)
+    c = ConnectorThingy.connect(VALID_DOMAIN, 80).attach(@loop)
     
     proc do
       @loop.run
     end.should raise_error(ItWorked)
+    
+    c.close
   end
   
   it "fires on_resolve_failed for invalid domains" do
-    ConnectorThingy.connect(INVALID_DOMAIN, 80).attach(@loop)
+    c = ConnectorThingy.connect(INVALID_DOMAIN, 80).attach(@loop)
     
     proc do
       @loop.run
     end.should raise_error(WontResolve)
+    
+    c.close
   end
 end
