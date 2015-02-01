@@ -1,9 +1,14 @@
 package io.cool;
 
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.nio.NioEventLoop;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.nio.NioTask;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -16,9 +21,9 @@ import org.jruby.Ruby;
 import org.jruby.RubyClass;
 import org.jruby.RubyIO;
 import org.jruby.anno.JRubyMethod;
+import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.util.log.Logger;
-import org.jruby.util.log.LoggerFactory;
 
 /**
  * @author taichi
@@ -31,6 +36,7 @@ public class IOWatcher extends Watcher {
 
 	RubyIO io;
 	int interestOps = SelectionKey.OP_READ;
+	ChannelFuture future;
 
 	public IOWatcher(Ruby runtime, RubyClass metaClass) {
 		super(runtime, metaClass);
@@ -68,7 +74,7 @@ public class IOWatcher extends Watcher {
 	public IRubyObject attach(IRubyObject arg) throws IOException {
 		super.doAttach(arg);
 		java.nio.channels.Channel ch = this.io.getChannel();
-		LOG.debug("{}", ch);
+		LOG.debug("attach {} {}", ch, getMetaClass());
 		if (ch instanceof DatagramChannel) {
 			DatagramChannel dc = (DatagramChannel) ch;
 			register(dc);
@@ -85,33 +91,71 @@ public class IOWatcher extends Watcher {
 		return this;
 	}
 
+	void register(java.nio.channels.SocketChannel sc) {
+		Channel ch = new NioSocketChannel(sc);
+		ch.config().setRecvByteBufAllocator(() -> new HackHandle());
+		ch.pipeline().addLast(new ChannelInboundHandlerAdapter() {
+			Semaphore semaphore = new Semaphore(1);
+
+			@Override
+			public void channelActive(ChannelHandlerContext ctx)
+					throws Exception {
+				if (semaphore.tryAcquire()) {
+					dispatch("on_writable", semaphore);
+				}
+			}
+
+			@Override
+			public void channelRead(ChannelHandlerContext ctx, Object msg)
+					throws Exception {
+				ch.config().setAutoRead(false);
+				if (semaphore.tryAcquire()) {
+					dispatch("on_readable", semaphore);
+				}
+			}
+
+			@Override
+			public void channelReadComplete(ChannelHandlerContext ctx)
+					throws Exception {
+				ch.config().setAutoRead(true);
+			}
+		});
+		future = Coolio.getIoLoop(getRuntime()).register(ch);
+	}
+
+	SelectableTask task;
+
+	class SelectableTask implements NioTask<SelectableChannel> {
+		SelectionKey lastKey;
+		Semaphore semaphre = new Semaphore(1);
+
+		@Override
+		public void channelReady(SelectableChannel ch, SelectionKey key)
+				throws Exception {
+			if (semaphre.tryAcquire()) { // wait for the worker
+				dispatch(key.readyOps(), semaphre);
+			}
+			this.lastKey = key;
+		}
+
+		@Override
+		public void channelUnregistered(SelectableChannel ch, Throwable cause)
+				throws Exception {
+			if (cause == null) {
+				LOG.debug("channelUnregistered {}", ch);
+			} else {
+				LOG.debug("channelUnregistered {} {}", ch, cause);
+			}
+		}
+	}
+
 	void register(SelectableChannel ch) throws IOException {
 		NioEventLoopGroup group = Coolio.getIoLoop(getRuntime());
 		NioEventLoop nel = (NioEventLoop) group.next();
 		try {
-			Semaphore semaphore = new Semaphore(1);
+			this.task = new SelectableTask();
 			ch.configureBlocking(false);
-			nel.register(ch, this.interestOps,
-					new NioTask<SelectableChannel>() {
-						@Override
-						public void channelReady(SelectableChannel ch,
-								SelectionKey key) throws Exception {
-							// FIXME selectするthreadとloopのスレッドの処理回数を併せる為の措置
-							if (semaphore.tryAcquire()) {
-								dispatch(key.readyOps(), semaphore);
-							}
-						}
-
-						@Override
-						public void channelUnregistered(SelectableChannel ch,
-								Throwable cause) throws Exception {
-							if (cause == null) {
-								LOG.debug("channelUnregistered", ch);
-							} else {
-								LOG.debug("channelUnregistered", cause);
-							}
-						}
-					});
+			nel.register(ch, this.interestOps, this.task);
 			nel.execute(() -> {
 			});
 		} catch (IOException ex) {
@@ -149,5 +193,22 @@ public class IOWatcher extends Watcher {
 
 	protected RubyIO toIO(SocketChannel channel) {
 		return RubyIO.newIO(getRuntime(), NettyHack.runJavaChannel(channel));
+	}
+
+	@JRubyMethod
+	@Override
+	public IRubyObject detach() {
+		LOG.debug("detach " + getMetaClass());
+		if (this.task != null) {
+			SelectionKey sk = this.task.lastKey;
+			if (sk != null && sk.isValid()) {
+				LOG.debug("SelectionKey#cancel {}", getMetaClass());
+				sk.cancel();
+			}
+		}
+		if (this.future != null) {
+			this.future.awaitUninterruptibly().channel().deregister();
+		}
+		return super.detach();
 	}
 }
