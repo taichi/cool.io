@@ -78,7 +78,7 @@ public class Watcher extends RubyObject {
 	protected IRubyObject doDetach() {
 		LOG.debug("detach BEGIN {} {} {}", Utils.threadName(), this, this.loop);
 		if (this.loop.isNil()) {
-			throw new IllegalStateException("not attached to a loop");
+			throw getRuntime().newRuntimeError("not attached to a loop");
 		}
 		if (this.loop instanceof Loop) {
 			Loop loop = (Loop) this.loop;
