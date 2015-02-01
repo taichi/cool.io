@@ -27,8 +27,7 @@ public class IOWatcher extends Watcher {
 
 	private static final long serialVersionUID = -9155305357984430840L;
 
-	private static final Logger LOG = LoggerFactory.getLogger(IOWatcher.class
-			.getName());
+	private static final Logger LOG = Utils.getLogger(IOWatcher.class);
 
 	RubyIO io;
 	int interestOps = SelectionKey.OP_READ;
@@ -38,8 +37,8 @@ public class IOWatcher extends Watcher {
 	}
 
 	@JRubyMethod(required = 1, optional = 1)
-	public IRubyObject initialize(IRubyObject[] args) {
-		this.io = (RubyIO) args[0];
+	public IRubyObject initialize(ThreadContext context, IRubyObject[] args) {
+		this.io = RubyIO.convertToIO(context, args[0]);
 		this.interestOps = parseFlags(args);
 		return getRuntime().getNil();
 	}
@@ -76,7 +75,7 @@ public class IOWatcher extends Watcher {
 		} else if (ch instanceof java.nio.channels.SocketChannel) {
 			java.nio.channels.SocketChannel sc = (java.nio.channels.SocketChannel) ch;
 			register(sc);
-			if(sc.isConnectionPending()) {
+			if (sc.isConnectionPending()) {
 				sc.finishConnect();
 			}
 		} else {
