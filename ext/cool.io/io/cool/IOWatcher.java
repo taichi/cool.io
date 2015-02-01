@@ -83,12 +83,6 @@ public class IOWatcher extends Watcher {
 		} else if (ch instanceof java.nio.channels.SocketChannel) {
 			java.nio.channels.SocketChannel sc = (java.nio.channels.SocketChannel) ch;
 			register(sc);
-			if (sc.isConnectionPending()) {
-				Utils.setVar(this, "@so_error",
-						sc.finishConnect() ? RubyFixnum.zero(getRuntime())
-								: RubyFixnum.one(getRuntime()));
-				dispatch(l -> this.callMethod("on_writable"));
-			}
 		} else {
 			throw getRuntime().newArgumentError(
 					"Unsupported channel Type " + ch);
@@ -96,12 +90,11 @@ public class IOWatcher extends Watcher {
 		return this;
 	}
 
-	void register(java.nio.channels.SocketChannel sc) {
+	void register(java.nio.channels.SocketChannel sc) throws IOException {
 		Channel ch = new NioSocketChannel(sc);
 		ch.config().setRecvByteBufAllocator(() -> new HackHandle());
+		Semaphore semaphore = new Semaphore(1);
 		ch.pipeline().addLast(new ChannelInboundHandlerAdapter() {
-			Semaphore semaphore = new Semaphore(1);
-
 			@Override
 			public void channelActive(ChannelHandlerContext ctx)
 					throws Exception {
@@ -125,6 +118,16 @@ public class IOWatcher extends Watcher {
 				ch.config().setAutoRead(true);
 			}
 		});
+		if (sc.isConnectionPending()) {
+			if (sc.finishConnect()) {
+				Utils.setVar(this, "@so_error", RubyFixnum.zero(getRuntime()));
+			} else {
+				Utils.setVar(this, "@so_error", RubyFixnum.one(getRuntime()));
+			}
+			if (semaphore.tryAcquire()) {
+				dispatch(SelectionKey.OP_WRITE, semaphore);
+			}
+		}
 		future = Coolio.getIoLoop(getRuntime()).register(ch);
 	}
 
