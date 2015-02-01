@@ -19,6 +19,7 @@ import java.util.concurrent.Semaphore;
 
 import org.jruby.Ruby;
 import org.jruby.RubyClass;
+import org.jruby.RubyFixnum;
 import org.jruby.RubyIO;
 import org.jruby.anno.JRubyMethod;
 import org.jruby.runtime.ThreadContext;
@@ -82,7 +83,10 @@ public class IOWatcher extends Watcher {
 			java.nio.channels.SocketChannel sc = (java.nio.channels.SocketChannel) ch;
 			register(sc);
 			if (sc.isConnectionPending()) {
-				sc.finishConnect();
+				Utils.setVar(this, "@so_error",
+						sc.finishConnect() ? RubyFixnum.zero(getRuntime())
+								: RubyFixnum.one(getRuntime()));
+				dispatch(l -> this.callMethod("on_writable"));
 			}
 		} else {
 			throw getRuntime().newArgumentError(
