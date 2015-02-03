@@ -109,8 +109,6 @@ describe Coolio::TCPSocket do
       loop.attach client
       loop.run_once # on_connect
       client.write "0"
-      loop.run_once # flush_buffer
-      loop.run_once # wait for accept
     end
     
     it "disconnect from client" do
@@ -124,6 +122,7 @@ describe Coolio::TCPSocket do
   end
   
   context "#on_read" do
+    class Finished < StandardError; end
     class OnRead < Cool.io::TCPSocket
       attr :read_data, :times
       def on_connect
@@ -137,6 +136,7 @@ describe Coolio::TCPSocket do
           write "#{@times}"
         else
           close
+          raise Finished
         end
       end
     end
@@ -146,14 +146,10 @@ describe Coolio::TCPSocket do
       loop.attach c
       loop.run_once # on_connect
       c.write "0"
-      loop.run_once # flush_buffer
-      10.times do # 2(readwatcher + writewatcher) * 5
-        loop.run_once # on_read
-      end
+      expect { loop.run }.to raise_error(Finished)
+      
       expect(c.times).to eq 5
       expect(c.read_data).to eq "01234"
-      
-      c.close
     end
   end
 end

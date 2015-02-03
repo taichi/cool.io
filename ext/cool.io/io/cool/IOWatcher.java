@@ -1,5 +1,6 @@
 package io.cool;
 
+import io.Buffer;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
@@ -127,6 +128,33 @@ public class IOWatcher extends Watcher {
 		future = Coolio.getIoLoop(getRuntime()).register(ch);
 	}
 
+	@JRubyMethod(argTypes = { Buffer.class }, required = 1)
+	public IRubyObject write(IRubyObject buffer) {
+		if (this.future == null) {
+			throw getRuntime()
+					.newRuntimeError(
+							"write after attach. jruby implementation is not support write before attach.");
+		}
+		LOG.debug("write buffer");
+		Buffer buff = (Buffer) buffer;
+		Channel ch = this.future.channel();
+		buff.internalBuffer().retain();
+		ch.writeAndFlush(buff.internalBuffer(),
+				ch.newPromise().addListener(f -> {
+					dispatch("on_write_complete");
+					buff.clear();
+				}));
+		return this;
+	}
+
+	@JRubyMethod
+	public IRubyObject validate_writable(ThreadContext context) {
+		if (this.future == null || this.future.channel().isOpen() == false) {
+			throw getRuntime().newIOError("socket is not writable");
+		}
+		return context.nil;
+	}
+
 	SelectableTask task;
 
 	class SelectableTask implements NioTask<SelectableChannel> {
@@ -183,9 +211,11 @@ public class IOWatcher extends Watcher {
 		// これによって残タスク数が簡単に数万になってしまうので、semaphoreを使ってそもそもイベントをスタックしないようにしている。
 		// これによってRubyコード側の処理性能に全体的な性能が引っ張られてしまう。
 		if (semaphore.tryAcquire()) {
+			LOG.debug("dispatch {} {}", event, getMetaClass());
 			dispatch(l -> {
 				try {
 					this.callMethod(event);
+					LOG.debug("called {} {}", event, getMetaClass());
 				} finally {
 					semaphore.release();
 				}

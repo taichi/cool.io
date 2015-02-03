@@ -233,4 +233,8 @@ public class Buffer extends RubyObject {
 		RubyString str = RubyString.newStringNoCopy(getRuntime(), bytes);
 		return IO.write(getRuntime().getCurrentContext(), str);
 	}
+
+	public ByteBuf internalBuffer() {
+		return this.internalBuffer;
+	}
 }

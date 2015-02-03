@@ -138,7 +138,11 @@ module Coolio
     # Write the contents of the output buffer
     def on_writable
       begin
-        @_write_buffer.write_to(@_io)
+        if jruby?
+          @_write_watcher.validate_writable
+        else
+          @_write_buffer.write_to(@_io)
+        end
       rescue Errno::EINTR
         return
 
@@ -159,6 +163,7 @@ module Coolio
       return unless @_read_watcher.attached? # this would mean 'currently unattached' -- ie still pre DNS, or just plain not attached, which is ok
       begin
         enable_write_watcher
+        @_write_watcher.write @_write_buffer if jruby?
       rescue IOError
       end
     end
@@ -194,6 +199,10 @@ module Coolio
       def on_writable
         @coolio_io.__send__(:on_writable)
       end
+      
+      def on_write_complete
+        @coolio_io.__send__(:on_write_complete)
+      end if jruby?
     end
   end
 end
