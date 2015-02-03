@@ -93,7 +93,7 @@ public class IOWatcher extends Watcher {
 		return this;
 	}
 
-	void register(java.nio.channels.SocketChannel sc) throws IOException {
+	void register(java.nio.channels.SocketChannel sc) {
 		Channel ch = new NioSocketChannel(sc);
 		ch.config().setRecvByteBufAllocator(() -> new HackHandle());
 
@@ -118,12 +118,16 @@ public class IOWatcher extends Watcher {
 			}
 		});
 		ch.closeFuture().addListener(f -> dispatch(SelectionKey.OP_WRITE));
-		if (sc.isConnectionPending()) {
-			if (sc.finishConnect()) {
-				Utils.setVar(this, "@so_error", RubyFixnum.zero(getRuntime()));
-			} else {
-				Utils.setVar(this, "@so_error", RubyFixnum.one(getRuntime()));
+		if (sc.isOpen() && sc.isConnectionPending()) {
+			RubyFixnum num = RubyFixnum.one(getRuntime());
+			try {
+				if (sc.finishConnect()) {
+					num = RubyFixnum.zero(getRuntime());
+				}
+			} catch (IOException e) {
+				// suppress error
 			}
+			Utils.setVar(this, "@so_error", num);
 			dispatch(SelectionKey.OP_WRITE);
 		}
 		future = Coolio.getIoLoop(getRuntime()).register(ch);
