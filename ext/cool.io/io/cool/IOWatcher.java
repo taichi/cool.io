@@ -1,6 +1,7 @@
 package io.cool;
 
 import io.Buffer;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
@@ -135,15 +136,13 @@ public class IOWatcher extends Watcher {
 					.newRuntimeError(
 							"write after attach. jruby implementation is not support write before attach.");
 		}
-		LOG.debug("write buffer");
 		Buffer buff = (Buffer) buffer;
 		Channel ch = this.future.channel();
-		buff.internalBuffer().retain();
-		ch.writeAndFlush(buff.internalBuffer(),
-				ch.newPromise().addListener(f -> {
-					dispatch("on_write_complete");
-					buff.clear();
-				}));
+		ByteBuf cp = buff.internalBuffer().copy();
+		buff.clear();
+		ch.writeAndFlush(cp, ch.newPromise().addListener(f -> {
+			dispatch("on_write_complete");
+		}));
 		return this;
 	}
 
