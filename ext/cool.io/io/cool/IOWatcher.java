@@ -38,6 +38,7 @@ public class IOWatcher extends Watcher {
 	RubyIO io;
 	int interestOps = SelectionKey.OP_READ;
 	ChannelFuture future;
+	Semaphore semaphore = new Semaphore(1);
 
 	public IOWatcher(Ruby runtime, RubyClass metaClass) {
 		super(runtime, metaClass);
@@ -93,19 +94,19 @@ public class IOWatcher extends Watcher {
 	void register(java.nio.channels.SocketChannel sc) throws IOException {
 		Channel ch = new NioSocketChannel(sc);
 		ch.config().setRecvByteBufAllocator(() -> new HackHandle());
-		Semaphore semaphore = new Semaphore(1);
+
 		ch.pipeline().addLast(new ChannelInboundHandlerAdapter() {
 			@Override
 			public void channelActive(ChannelHandlerContext ctx)
 					throws Exception {
-				dispatch(SelectionKey.OP_WRITE, semaphore);
+				dispatch(SelectionKey.OP_WRITE);
 			}
 
 			@Override
 			public void channelRead(ChannelHandlerContext ctx, Object msg)
 					throws Exception {
 				ch.config().setAutoRead(false);
-				dispatch(SelectionKey.OP_READ, semaphore);
+				dispatch(SelectionKey.OP_READ);
 			}
 
 			@Override
@@ -114,14 +115,14 @@ public class IOWatcher extends Watcher {
 				ch.config().setAutoRead(true);
 			}
 		});
-		ch.closeFuture().addListener(f -> dispatch("close", semaphore));
+		ch.closeFuture().addListener(f -> dispatch(SelectionKey.OP_WRITE));
 		if (sc.isConnectionPending()) {
 			if (sc.finishConnect()) {
 				Utils.setVar(this, "@so_error", RubyFixnum.zero(getRuntime()));
 			} else {
 				Utils.setVar(this, "@so_error", RubyFixnum.one(getRuntime()));
 			}
-			dispatch(SelectionKey.OP_WRITE, semaphore);
+			dispatch(SelectionKey.OP_WRITE);
 		}
 		future = Coolio.getIoLoop(getRuntime()).register(ch);
 	}
@@ -130,12 +131,11 @@ public class IOWatcher extends Watcher {
 
 	class SelectableTask implements NioTask<SelectableChannel> {
 		SelectionKey lastKey;
-		Semaphore semaphre = new Semaphore(1);
 
 		@Override
 		public void channelReady(SelectableChannel ch, SelectionKey key)
 				throws Exception {
-			dispatch(key.readyOps(), semaphre);
+			dispatch(key.readyOps());
 			this.lastKey = key;
 		}
 
@@ -168,15 +168,15 @@ public class IOWatcher extends Watcher {
 		}
 	}
 
-	void dispatch(int readyOps, Semaphore semaphore) {
+	void dispatch(int readyOps) {
 		if ((readyOps & SelectionKey.OP_READ) != 0 || readyOps == 0) {
-			dispatch("on_readable", semaphore);
+			dispatch("on_readable");
 		} else if ((readyOps & SelectionKey.OP_WRITE) != 0) {
-			dispatch("on_writable", semaphore);
+			dispatch("on_writable");
 		}
 	}
 
-	void dispatch(String event, Semaphore semaphore) {
+	void dispatch(String event) {
 		// c実装ではwatcher.cのdetachでloopの中に抱え込んだイベントのうち
 		// 当該watcherに関係のあるものだけをフィルタリングして消している。
 		// Java実装ではChannelからデータを読み取らない限りSelectorからイベントが配信され続ける。
