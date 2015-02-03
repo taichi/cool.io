@@ -92,6 +92,7 @@ public class Server extends IOWatcher {
 										.getCurrentContext(), "on_close"));
 					}
 				});
+		this.disposer = this::dispose;
 		this.future = b.register();
 		this.future
 				.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);

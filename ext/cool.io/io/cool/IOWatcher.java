@@ -132,11 +132,13 @@ public class IOWatcher extends Watcher {
 			Utils.setVar(this, "@so_error", num);
 			dispatch(SelectionKey.OP_WRITE);
 		}
-		this.disposer = w -> {
-			LOG.debug("Channel#deregister {}", getMetaClass());
-			ch.deregister();
-		};
+		this.disposer = this::dispose;
 		this.future = Coolio.getIoLoop(getRuntime()).register(ch);
+	}
+	
+	protected void dispose(IOWatcher w) {
+		LOG.debug("Channel#deregister {}", getMetaClass());
+		this.future.awaitUninterruptibly().channel().deregister();
 	}
 
 	@JRubyMethod(argTypes = { Buffer.class }, required = 1)
