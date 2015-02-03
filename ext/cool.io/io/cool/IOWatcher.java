@@ -18,6 +18,7 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.Semaphore;
+import java.util.function.Consumer;
 
 import org.jruby.Ruby;
 import org.jruby.RubyClass;
@@ -39,7 +40,9 @@ public class IOWatcher extends Watcher {
 
 	RubyIO io;
 	int interestOps = SelectionKey.OP_READ;
+
 	ChannelFuture future;
+	Consumer<IOWatcher> disposer;
 	Semaphore semaphore = new Semaphore(1);
 
 	public IOWatcher(Ruby runtime, RubyClass metaClass) {
@@ -96,7 +99,6 @@ public class IOWatcher extends Watcher {
 	void register(java.nio.channels.SocketChannel sc) {
 		Channel ch = new NioSocketChannel(sc);
 		ch.config().setRecvByteBufAllocator(() -> new HackHandle());
-
 		ch.pipeline().addLast(new ChannelInboundHandlerAdapter() {
 			@Override
 			public void channelActive(ChannelHandlerContext ctx)
@@ -130,7 +132,11 @@ public class IOWatcher extends Watcher {
 			Utils.setVar(this, "@so_error", num);
 			dispatch(SelectionKey.OP_WRITE);
 		}
-		future = Coolio.getIoLoop(getRuntime()).register(ch);
+		this.disposer = w -> {
+			LOG.debug("Channel#deregister {}", getMetaClass());
+			ch.deregister();
+		};
+		this.future = Coolio.getIoLoop(getRuntime()).register(ch);
 	}
 
 	@JRubyMethod(argTypes = { Buffer.class }, required = 1)
@@ -157,8 +163,6 @@ public class IOWatcher extends Watcher {
 		}
 		return context.nil;
 	}
-
-	SelectableTask task;
 
 	class SelectableTask implements NioTask<SelectableChannel> {
 		SelectionKey lastKey;
@@ -189,11 +193,18 @@ public class IOWatcher extends Watcher {
 		NioEventLoopGroup group = Coolio.getIoLoop(getRuntime());
 		NioEventLoop nel = (NioEventLoop) group.next();
 		try {
-			this.task = new SelectableTask();
+			SelectableTask task = new SelectableTask();
 			ch.configureBlocking(false);
-			nel.register(ch, this.interestOps, this.task);
+			nel.register(ch, this.interestOps, task);
 			nel.execute(() -> {
 			});
+			this.disposer = w -> {
+				SelectionKey sk = task.lastKey;
+				if (sk != null && sk.isValid()) {
+					LOG.debug("SelectionKey#cancel {}", getMetaClass());
+					sk.cancel();
+				}
+			};
 		} catch (IOException ex) {
 			throw new UncheckedIOException(ex);
 		}
@@ -244,17 +255,8 @@ public class IOWatcher extends Watcher {
 	@Override
 	public IRubyObject detach() {
 		LOG.debug("detach {}", getMetaClass());
-
-		if (this.task != null) {
-			SelectionKey sk = this.task.lastKey;
-			if (sk != null && sk.isValid()) {
-				LOG.debug("SelectionKey#cancel {}", getMetaClass());
-				sk.cancel();
-			}
-		}
-		if (this.future != null) {
-			LOG.debug("Channel#deregister {}", getMetaClass());
-			this.future.awaitUninterruptibly().channel().deregister();
+		if (this.disposer != null) {
+			this.disposer.accept(this);
 		}
 		return super.detach();
 	}
