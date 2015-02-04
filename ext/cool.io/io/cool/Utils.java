@@ -39,12 +39,20 @@ public interface Utils {
 
 	static final boolean debug = isDebug();
 
+	static final int file_stat_millis = fileStatMillis();
+
 	static final Logger LOG = Utils.getLogger(Utils.class);
 
 	static boolean isDebug() {
 		return Boolean.getBoolean("cool.io.debug")
 				|| Boolean.parseBoolean(Objects.toString(
 						System.getenv("COOL_IO_DEBUG"), "false"));
+	}
+
+	static int fileStatMillis() {
+		String n = Objects
+				.toString(System.getenv("COOL_IO_STAT_MILLIS"), "200");
+		return Integer.getInteger("cool.io.stat_millis", Integer.parseInt(n));
 	}
 
 	static Logger getLogger(Class<?> clazz) {

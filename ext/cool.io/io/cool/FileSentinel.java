@@ -82,7 +82,8 @@ class FileSentinel {
 	void publishEvents() {
 		try {
 			while (Thread.interrupted() == false && running.get()) {
-				WatchKey key = watchService.poll(200, TimeUnit.MILLISECONDS);
+				WatchKey key = watchService.poll(Utils.file_stat_millis,
+						TimeUnit.MILLISECONDS);
 				if (key != null) {
 					Path path = Path.class.cast(key.watchable());
 					for (WatchEvent<?> event : key.pollEvents()) {
@@ -94,7 +95,7 @@ class FileSentinel {
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 		} catch (ClosedWatchServiceException | RejectedExecutionException e) {
-			LOG.debug("any time no problem.", e);
+			// any time no problem.
 		} catch (Exception e) {
 			LOG.error(e);
 		}
