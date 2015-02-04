@@ -36,7 +36,7 @@ describe Coolio::TCPSocket do
           unless s.eof?
             s.write(s.read_nonblock 1)
           end
-        rescue IOError
+        rescue SystemCallError, EOFError, IOError, SocketError
         end
       end
     end
