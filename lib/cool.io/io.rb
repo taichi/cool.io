@@ -160,14 +160,21 @@ module Coolio
     # Schedule a write to be performed when the IO object becomes writable
     def schedule_write
       return unless @_io # this would mean 'we are still pre DNS here'
-      return unless @_read_watcher.attached? # this would mean 'currently unattached' -- ie still pre DNS, or just plain not attached, which is ok
       begin
-        enable_write_watcher
-        @_write_watcher.write @_write_buffer if jruby?
+        if @_read_watcher.attached? # this would mean 'currently unattached' -- ie still pre DNS, or just plain not attached, which is ok
+          enable_write_watcher
+        end
+        if jruby?
+          @_write_watcher.write @_write_buffer
+        end
       rescue IOError
       end
     end
-
+    
+    def passChannel(ch)
+      @_write_watcher.receive ch
+    end if jruby?
+    
     def enable_write_watcher
       if @_write_watcher.attached?
         @_write_watcher.enable unless @_write_watcher.enabled?

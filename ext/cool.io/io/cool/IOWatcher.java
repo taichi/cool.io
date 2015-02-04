@@ -3,7 +3,6 @@ package io.cool;
 import io.Buffer;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.nio.NioEventLoop;
@@ -25,6 +24,7 @@ import org.jruby.RubyClass;
 import org.jruby.RubyFixnum;
 import org.jruby.RubyIO;
 import org.jruby.anno.JRubyMethod;
+import org.jruby.javasupport.JavaObject;
 import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.util.log.Logger;
@@ -41,7 +41,7 @@ public class IOWatcher extends Watcher {
 	RubyIO io;
 	int interestOps = SelectionKey.OP_READ;
 
-	ChannelFuture future;
+	Channel channel;
 	Consumer<IOWatcher> disposer;
 	Semaphore semaphore = new Semaphore(1);
 
@@ -133,34 +133,45 @@ public class IOWatcher extends Watcher {
 			dispatch(SelectionKey.OP_WRITE);
 		}
 		this.disposer = this::dispose;
-		this.future = Coolio.getIoLoop(getRuntime()).register(ch);
+		this.channel = ch;
+		Coolio.getIoLoop(getRuntime()).register(ch);
 	}
-	
+
 	protected void dispose(IOWatcher w) {
 		LOG.debug("Channel#deregister {}", getMetaClass());
-		this.future.awaitUninterruptibly().channel().deregister();
+		this.channel.deregister();
+	}
+
+	@JRubyMethod(argTypes = { JavaObject.class }, required = 1)
+	public IRubyObject receive(IRubyObject ch) {
+		JavaObject wrapper = (JavaObject) ch;
+		this.channel = (Channel) wrapper.dataGetStruct();
+		return this;
 	}
 
 	@JRubyMethod(argTypes = { Buffer.class }, required = 1)
 	public IRubyObject write(IRubyObject buffer) {
-		if (this.future == null) {
+		if (this.channel == null) {
 			throw getRuntime()
 					.newRuntimeError(
 							"write after attach. jruby implementation is not support write before attach.");
 		}
 		Buffer buff = (Buffer) buffer;
-		Channel ch = this.future.channel();
+		LOG.debug("write buffer {}", buff);
 		ByteBuf cp = buff.internalBuffer().copy();
 		buff.clear();
-		ch.writeAndFlush(cp, ch.newPromise().addListener(f -> {
-			dispatch("on_write_complete");
-		}));
+		this.channel.writeAndFlush(cp,
+				this.channel.newPromise().addListener(f -> {
+					dispatch("on_write_complete");
+				}));
 		return this;
 	}
 
 	@JRubyMethod
 	public IRubyObject validate_writable(ThreadContext context) {
-		if (this.future == null || this.future.channel().isOpen() == false) {
+		LOG.debug("validate_writable {} {}", this,
+				System.identityHashCode(this));
+		if (this.channel != null && this.channel.isOpen() == false) {
 			throw getRuntime().newIOError("socket is not writable");
 		}
 		return context.nil;
