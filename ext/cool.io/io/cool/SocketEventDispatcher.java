@@ -26,6 +26,5 @@ class SocketEventDispatcher extends ChannelInboundHandlerAdapter {
 		LOG.debug("{} {}", msg, msg.getClass());
 		socket.callMethod(socket.getRuntime().getCurrentContext(), "on_read",
 				Utils.to(socket.getRuntime(), (ByteBuf) msg));
-		// ctx.write(msg);
 	}
 }

@@ -142,8 +142,10 @@ public class IOWatcher extends Watcher {
 
 	@JRubyMethod(argTypes = { JavaObject.class }, required = 1)
 	public IRubyObject receive(IRubyObject ch) {
-		JavaObject wrapper = (JavaObject) ch;
-		this.channel = (Channel) wrapper.dataGetStruct();
+		if (ch instanceof JavaObject) {
+			JavaObject wrapper = (JavaObject) ch;
+			this.channel = (Channel) wrapper.dataGetStruct();
+		}
 		return this;
 	}
 
@@ -154,14 +156,16 @@ public class IOWatcher extends Watcher {
 					.newRuntimeError(
 							"write after attach. jruby implementation is not support write before attach.");
 		}
-		Buffer buff = (Buffer) buffer;
-		LOG.debug("write buffer {}", buff);
-		ByteBuf cp = buff.internalBuffer().copy();
-		buff.clear();
-		this.channel.writeAndFlush(cp,
-				this.channel.newPromise().addListener(f -> {
-					dispatch("on_write_complete");
-				}));
+		if (buffer instanceof Buffer) {
+			Buffer buff = (Buffer) buffer;
+			LOG.debug("write buffer {}", buff);
+			ByteBuf cp = buff.internalBuffer().copy();
+			buff.clear();
+			this.channel.writeAndFlush(cp, this.channel.newPromise()
+					.addListener(f -> {
+						dispatch("on_write_complete");
+					}));
+		}
 		return this;
 	}
 
