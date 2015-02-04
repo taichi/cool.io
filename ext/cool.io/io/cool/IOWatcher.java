@@ -8,11 +8,9 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.nio.NioEventLoop;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.nio.NioTask;
-import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
@@ -202,7 +200,7 @@ public class IOWatcher extends Watcher {
 		}
 	}
 
-	void register(SelectableChannel ch) throws IOException {
+	void register(SelectableChannel ch) {
 		NioEventLoopGroup group = Coolio.getIoLoop(getRuntime());
 		NioEventLoop nel = (NioEventLoop) group.next();
 		try {
@@ -219,7 +217,7 @@ public class IOWatcher extends Watcher {
 				}
 			};
 		} catch (IOException ex) {
-			throw new UncheckedIOException(ex);
+			throw getRuntime().newIOErrorFromException(ex);
 		}
 	}
 
@@ -258,10 +256,6 @@ public class IOWatcher extends Watcher {
 	@JRubyMethod(name = "on_writable")
 	public IRubyObject onWritable() {
 		return getRuntime().getNil(); // do nothing.
-	}
-
-	protected RubyIO toIO(SocketChannel channel) {
-		return RubyIO.newIO(getRuntime(), NettyHack.runJavaChannel(channel));
 	}
 
 	@JRubyMethod

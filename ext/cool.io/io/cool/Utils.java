@@ -5,6 +5,7 @@ import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.socket.SocketChannel;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -18,6 +19,7 @@ import java.util.function.BiFunction;
 
 import org.jruby.Ruby;
 import org.jruby.RubyClass;
+import org.jruby.RubyIO;
 import org.jruby.RubyModule;
 import org.jruby.RubyString;
 import org.jruby.runtime.Arity;
@@ -141,5 +143,9 @@ public interface Utils {
 		buf.readBytes(bytes);
 		return RubyString.newStringNoCopy(ruby, bytes);
 
+	}
+
+	static RubyIO toIO(Ruby ruby, SocketChannel channel) {
+		return RubyIO.newIO(ruby, NettyHack.runJavaChannel(channel));
 	}
 }

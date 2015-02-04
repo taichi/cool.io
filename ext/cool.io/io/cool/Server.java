@@ -53,14 +53,14 @@ public class Server extends IOWatcher {
 	IRubyObject[] makeArgs(SocketChannel channel) {
 		IRubyObject maybeArray = Utils.getVar(this, "@args");
 		if (maybeArray.isNil()) {
-			return new IRubyObject[] { toIO(channel) };
+			return new IRubyObject[] { Utils.toIO(getRuntime(), channel) };
 		}
 		if (maybeArray instanceof RubyArray) {
 			RubyArray a = (RubyArray) maybeArray.dup();
-			a.unshift(toIO(channel));
+			a.unshift(Utils.toIO(getRuntime(), channel));
 			return a.toJavaArray();
 		}
-		return new IRubyObject[] { toIO(channel), maybeArray };
+		return new IRubyObject[] { Utils.toIO(getRuntime(), channel), maybeArray };
 	}
 
 	@Override
