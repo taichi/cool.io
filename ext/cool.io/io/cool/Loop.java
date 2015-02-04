@@ -30,7 +30,6 @@ public class Loop extends RubyObject {
 	private static final Logger LOG = Utils.getLogger(Loop.class);
 
 	Lock lock = new ReentrantLock();
-	int numberOfEvents = 0;
 	BlockingQueue<Consumer<Loop>> events = new LinkedBlockingQueue<>();
 
 	public static void load(Ruby runtime) throws IOException {
@@ -67,7 +66,7 @@ public class Loop extends RubyObject {
 
 		LOG.debug(
 				"run_once timeout:{} events:{} running:{} active_watchers:{} watchers:{}",
-				t, numberOfEvents, Utils.getVar(this, "@running"),
+				t, this.events.size(), Utils.getVar(this, "@running"),
 				Utils.getVar(this, "@active_watchers"),
 				Utils.getVar(this, "@watchers"));
 
@@ -75,12 +74,11 @@ public class Loop extends RubyObject {
 		if (ev != null) {
 			doLock(l -> {
 				ev.accept(this);
-				numberOfEvents--;
 				LOG.debug("accepted thread:{} events:{}", Utils.threadName(),
-						numberOfEvents);
+						this.events.size());
 			});
 		}
-		return RubyNumeric.int2fix(getRuntime(), this.numberOfEvents);
+		return RubyNumeric.int2fix(getRuntime(), this.events.size());
 	}
 
 	@JRubyMethod(name = "run_nonblock")
@@ -92,7 +90,7 @@ public class Loop extends RubyObject {
 				return null;
 			}
 		});
-		return RubyNumeric.int2fix(getRuntime(), this.numberOfEvents);
+		return RubyNumeric.int2fix(getRuntime(), this.events.size());
 	}
 
 	void attach(Watcher watcher) {
@@ -101,9 +99,8 @@ public class Loop extends RubyObject {
 
 	void supply(Consumer<Loop> event) {
 		doLock(l -> {
-			numberOfEvents++;
 			this.events.add(event);
-			LOG.debug("supply {} {}", Utils.threadName(), numberOfEvents);
+			LOG.debug("supply {} {}", Utils.threadName(), this.events.size());
 		});
 	}
 
