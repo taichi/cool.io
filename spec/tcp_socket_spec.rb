@@ -4,7 +4,7 @@ describe Coolio::TCPSocket do
   let :loop do
     Coolio::Loop.new
   end
-
+  
   before :each do
     @echo = TCPServer.new(0)
     @host = @echo.addr[3]
@@ -12,26 +12,33 @@ describe Coolio::TCPSocket do
     @running = true
     @echo_thread = Thread.new do
       socks = [@echo]
-      while @running
-        selected = select(socks, [], [], 0.1)
-        next if selected.nil?
-        selected[0].each do |s|
-          if s == @echo
-            socks.push s.accept
-            next
-          end
-          begin
-            unless s.eof?
-              s.write(s.read_nonblock 1)
-            end
-          rescue IOError
-          end
+      begin
+        serv socks
+      ensure
+        socks.each do |s|
+          s.close
         end
       end
-      socks.each do |s|
-        s.close
-      end
       Thread.pass
+    end
+  end
+  
+  def serv(socks)
+    while @running
+      selected = select(socks, [], [], 0.1)
+      next if selected.nil?
+      selected[0].each do |s|
+        if s == @echo
+          socks.push s.accept
+          next
+        end
+        begin
+          unless s.eof?
+            s.write(s.read_nonblock 1)
+          end
+        rescue IOError
+        end
+      end
     end
   end
   
@@ -64,11 +71,14 @@ describe Coolio::TCPSocket do
     end
     
     it "connected client called on_connect" do
-      c = OnConnect.connect(@host, @port)
-      loop.attach c
-      loop.run_once
-      expect(c.connected).to eq true
-      c.close
+      begin
+        c = OnConnect.connect(@host, @port)
+        loop.attach c
+        loop.run_once
+        expect(c.connected).to eq true
+      ensure
+        c.close
+      end
     end
   end
 

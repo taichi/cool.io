@@ -35,7 +35,6 @@ describe IO::Buffer do
   
   describe "provides methods for performing non-blocking I/O" do
     require "tempfile"
-    require "socket"
     
     context "#read_from" do
       context "using local file" do
@@ -54,10 +53,10 @@ describe IO::Buffer do
       context "using udp socket" do
         before do
           @receiver = UDPSocket.open
-          @receiver.bind nil, 10000
+          @receiver.bind nil, 0
           
           @sender = UDPSocket.open
-          @sender.connect "127.0.0.1", 10000
+          @sender.connect "localhost", @receiver.addr[1]
         end
         after do
           @receiver.close

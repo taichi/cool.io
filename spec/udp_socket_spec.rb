@@ -41,15 +41,18 @@ describe "Coolio::UDPSocket" do
     end
   end
   
-  it "receive message #on_readable 10 times" do
-    10.times do
-      r = Readable.new
-      r.socket.send "aaa", 0, "localhost", @port
-      
-      loop.attach r
-      loop.run_once
-      expect(r.received).to eq "aaabbb"
-      r.detach
+  it "receive message #on_readable 5 times" do
+    5.times do
+      begin
+        r = Readable.new
+        r.socket.send "aaa", 0, "localhost", @port
+        
+        loop.attach r
+        loop.run_once
+        expect(r.received).to eq "aaabbb"
+      ensure
+        r.detach
+      end
     end
   end
 end
