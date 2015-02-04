@@ -20,25 +20,39 @@ Rake::RDocTask.new do |rdoc|
   rdoc.rdoc_files.include('lib/**/*.rb')
 end
 
-require 'rake/extensiontask'
-
 spec = eval(File.read("cool.io.gemspec"))
 
-def configure_cross_compilation(ext)
-  unless RUBY_PLATFORM =~ /mswin|mingw/
-    ext.cross_compile = true
-    ext.cross_platform = 'i386-mingw32'#['i386-mswin32-60', 'i386-mingw32']
+if defined? JRUBY_VERSION
+  require "rake/javaextensiontask"
+  
+  Rake::JavaExtensionTask.new('coolio_ext', spec) do |ext|
+    ext.target_version = '1.8'
+    ext.source_version = '1.8 -encoding UTF-8'
+    ext.ext_dir = 'ext/cool.io'
+    ext.classpath = Dir["lib/**/*.jar"].map { |x| File.expand_path x }.join File::PATH_SEPARATOR
   end
-end
-
-Rake::ExtensionTask.new('iobuffer_ext', spec) do |ext|
-  ext.ext_dir = 'ext/iobuffer'
-  configure_cross_compilation(ext)
-end
-
-Rake::ExtensionTask.new('cool.io_ext', spec) do |ext|
-  ext.ext_dir = 'ext/cool.io'
-  configure_cross_compilation(ext)
+  CLEAN.include "lib/coolio_ext.jar"
+  
+  task :build => :compile
+else
+  require 'rake/extensiontask'
+  
+  def configure_cross_compilation(ext)
+    unless RUBY_PLATFORM =~ /mswin|mingw/
+      ext.cross_compile = true
+      ext.cross_platform = 'i386-mingw32'#['i386-mswin32-60', 'i386-mingw32']
+    end
+  end
+  
+  Rake::ExtensionTask.new('iobuffer_ext', spec) do |ext|
+    ext.ext_dir = 'ext/iobuffer'
+    configure_cross_compilation(ext)
+  end
+  
+  Rake::ExtensionTask.new('cool.io_ext', spec) do |ext|
+    ext.ext_dir = 'ext/cool.io'
+    configure_cross_compilation(ext)
+  end
 end
 
 # adapted from http://flavoriffic.blogspot.com/2009/06/easily-valgrind-gdb-your-ruby-c.html

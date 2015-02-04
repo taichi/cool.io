@@ -7,7 +7,18 @@ rvm:
   - 2.2
   - ruby-head
   - rbx
+  - jruby-19mode
 
 matrix:
   allow_failures:
     - rvm: rbx
+
+jdk:
+  - oraclejdk8
+
+cache:
+  directories:
+    - $HOME/.m2
+
+env: 
+  - JARS_VERBOSE=true COOL_IO_DEBUG=true

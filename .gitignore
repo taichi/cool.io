@@ -24,5 +24,17 @@ tmp
 
 ## PROJECT::SPECIFIC
 conftest.dSYM
+*.gem
 
+## JRuby
+.jruby
 *.lock
+*.jar
+lib/cool.io_jars.rb
+
+## eclipse
+.project
+.classpath
+.settings
+/launcher
+/bin
