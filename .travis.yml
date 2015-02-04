@@ -11,6 +11,10 @@ rvm:
 jdk:
   - oraclejdk8
 
+cache:
+  directories:
+    - $HOME/.m2
+
 env: 
   - JARS_VERBOSE=true COOL_IO_DEBUG=true
 
