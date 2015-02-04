@@ -46,7 +46,6 @@ public class Loop extends RubyObject {
 			int f = RubyNumeric.fix2int(flags);
 			LOG.debug("flags are omitted {}", f);
 		}
-		Coolio.getFileSentinel(getRuntime()).start();
 		return getRuntime().getNil();
 	}
 

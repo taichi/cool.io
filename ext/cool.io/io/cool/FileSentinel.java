@@ -41,6 +41,7 @@ class FileSentinel {
 
 	public void watch(Path path) {
 		LOG.debug("watch {}", path);
+		start();
 		WatchKey key = Utils.watch(this.watchService,
 				Files.isDirectory(path) ? path : path.getParent());
 		keys.putIfAbsent(path, key);
@@ -57,6 +58,7 @@ class FileSentinel {
 
 	public BiConsumer<Path, WatchEvent<?>> register(
 			BiConsumer<Path, WatchEvent<?>> listener) {
+		start();
 		LOG.debug("register BEGIN {}", listeners.size());
 		listeners.add(listener);
 		LOG.debug("register END   {}", listeners.size());
@@ -100,7 +102,7 @@ class FileSentinel {
 
 	void dispatch(Path root, WatchEvent<?> event) throws IOException {
 		LOG.debug("dispatch {} {}", event.kind().name(), root);
-		listeners.stream().forEach(a -> a.accept(root, event));
+		listeners.forEach(a -> a.accept(root, event));
 	}
 
 	public void stop() {
