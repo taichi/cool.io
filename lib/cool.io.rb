@@ -5,12 +5,18 @@
 #++
 
 require "cool.io/version"
-require "cool.io/custom_require"
-cool_require "iobuffer_ext"
-cool_require "cool.io_ext"
+require "cool.io/detect"
+
+unless jruby?
+  require "cool.io/custom_require"
+  cool_require "iobuffer_ext"
+  cool_require "cool.io_ext"
+end
 
 require "cool.io/loop"
 require "cool.io/meta"
+require "cool.io_jars" if jruby?
+require "coolio_ext.jar" if jruby?
 require "cool.io/io"
 require "cool.io/iowatcher"
 require "cool.io/timer_watcher"
