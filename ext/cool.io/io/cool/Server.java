@@ -60,7 +60,8 @@ public class Server extends IOWatcher {
 			a.unshift(Utils.toIO(getRuntime(), channel));
 			return a.toJavaArray();
 		}
-		return new IRubyObject[] { Utils.toIO(getRuntime(), channel), maybeArray };
+		return new IRubyObject[] { Utils.toIO(getRuntime(), channel),
+				maybeArray };
 	}
 
 	@Override
@@ -88,9 +89,13 @@ public class Server extends IOWatcher {
 							throws Exception {
 						LOG.debug("initChannel with accept");
 						IRubyObject sock = makeSocket(ch);
-						JavaObject wrapper = JavaObject.wrap(getRuntime(), ch);
-						sock.callMethod(getRuntime().getCurrentContext(),
-								"passChannel", wrapper);
+						IRubyObject ro = Utils.getVar(sock, "@_write_watcher");
+						if (ro != null && ro.isNil() == false) {
+							JavaObject wrapper = JavaObject.wrap(getRuntime(),
+									ch);
+							ro.callMethod(getRuntime().getCurrentContext(),
+									"channel", wrapper);
+						}
 						ch.pipeline().addLast(new SocketEventDispatcher(sock));
 						ch.closeFuture().addListener(
 								cf -> sock.callMethod(sock.getRuntime()

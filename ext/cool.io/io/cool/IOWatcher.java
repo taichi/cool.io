@@ -117,7 +117,12 @@ public class IOWatcher extends Watcher {
 				ch.config().setAutoRead(true);
 			}
 		});
-		ch.closeFuture().addListener(f -> dispatch(SelectionKey.OP_WRITE));
+		ch.closeFuture().addListener(f -> {
+			IRubyObject ro = Utils.getVar(this, "@coolio_io");
+			if (ro != null && ro.isNil() == false) {
+				ro.callMethod(getRuntime().getCurrentContext(), "close");
+			}
+		});
 		if (sc.isOpen() && sc.isConnectionPending()) {
 			RubyFixnum num = RubyFixnum.one(getRuntime());
 			try {
@@ -127,6 +132,9 @@ public class IOWatcher extends Watcher {
 			} catch (IOException e) {
 				// suppress error
 			}
+			// jruby not support SO_ERROR.
+			// see. org.jruby.ext.socket.SocketType.getSocketOption(Channel,
+			// SocketOption)
 			Utils.setVar(this, "@so_error", num);
 			dispatch(SelectionKey.OP_WRITE);
 		}
@@ -141,7 +149,7 @@ public class IOWatcher extends Watcher {
 	}
 
 	@JRubyMethod(argTypes = { JavaObject.class }, required = 1)
-	public IRubyObject receive(IRubyObject ch) {
+	public IRubyObject channel(IRubyObject ch) {
 		if (ch instanceof JavaObject) {
 			JavaObject wrapper = (JavaObject) ch;
 			this.channel = (Channel) wrapper.dataGetStruct();
@@ -161,10 +169,20 @@ public class IOWatcher extends Watcher {
 			LOG.debug("write buffer {}", buff);
 			ByteBuf cp = buff.internalBuffer().copy();
 			buff.clear();
-			this.channel.writeAndFlush(cp, this.channel.newPromise()
-					.addListener(f -> {
-						dispatch("on_write_complete");
-					}));
+			this.channel.writeAndFlush(
+					cp,
+					this.channel.newPromise().addListener(
+							f -> {
+								throttlingDispatch(w -> {
+									IRubyObject ro = Utils.getVar(this,
+											"@coolio_io");
+									if (ro != null && ro.isNil() == false) {
+										ro.callMethod(getRuntime()
+												.getCurrentContext(),
+												"on_write_complete");
+									}
+								});
+							}));
 		}
 		return this;
 	}
@@ -234,17 +252,18 @@ public class IOWatcher extends Watcher {
 	}
 
 	void dispatch(String event) {
-		// c実装ではwatcher.cのdetachでloopの中に抱え込んだイベントのうち
-		// 当該watcherに関係のあるものだけをフィルタリングして消している。
-		// Java実装ではChannelからデータを読み取らない限りSelectorからイベントが配信され続ける。
-		// これによって残タスク数が簡単に数万になってしまうので、semaphoreを使ってそもそもイベントをスタックしないようにしている。
-		// これによってRubyコード側の処理性能に全体的な性能が引っ張られてしまう。
+		LOG.debug("dispatch {}", event);
+		throttlingDispatch(w -> w.callMethod(event));
+	}
+
+	void throttlingDispatch(Consumer<IOWatcher> fn) {
+		// see. watcher.c#Coolio_Watcher_detach
 		if (semaphore.tryAcquire()) {
-			LOG.debug("dispatch {} {}", event, getMetaClass());
+			LOG.debug("dispatch {}", getMetaClass());
 			dispatch(l -> {
 				try {
-					this.callMethod(event);
-					LOG.debug("called {} {}", event, getMetaClass());
+					fn.accept(this);
+					LOG.debug("called {}", getMetaClass());
 				} finally {
 					semaphore.release();
 				}

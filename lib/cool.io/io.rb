@@ -174,10 +174,6 @@ module Coolio
       end
     end
 
-    def passChannel(ch)
-      @_write_watcher.receive ch
-    end if jruby?
-
     def disable_write_watcher
       @_write_watcher.disable if @_write_watcher and @_write_watcher.enabled?
     end
@@ -201,10 +197,6 @@ module Coolio
       def on_writable
         @coolio_io.__send__(:on_writable)
       end
-
-      def on_write_complete
-        @coolio_io.__send__(:on_write_complete)
-      end if jruby?
     end
   end
 end
