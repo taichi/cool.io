@@ -1,3 +1,4 @@
+import io.Buffer;
 import java.io.IOException;
 
 import org.jruby.Ruby;
@@ -10,6 +11,7 @@ public class CoolioExtService implements BasicLibraryService {
 
 	@Override
 	public boolean basicLoad(Ruby runtime) throws IOException {
+		Buffer.load(runtime);
 		return true;
 	}
 }
