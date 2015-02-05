@@ -82,7 +82,11 @@ module Coolio
       #######
 
       def connect_successful?
-        @ruby_socket.getsockopt(::Socket::SOL_SOCKET, ::Socket::SO_ERROR).unpack('i').first == 0
+        if jruby?
+          @so_error == 0
+        else
+          @ruby_socket.getsockopt(::Socket::SOL_SOCKET, ::Socket::SO_ERROR).unpack('i').first == 0
+        end
       rescue IOError
         false
       end

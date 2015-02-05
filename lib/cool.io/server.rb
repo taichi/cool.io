@@ -40,7 +40,7 @@ module Coolio
       connection = @klass.new(socket, *@args).attach(evloop)
       connection.__send__(:on_connect)
       @block.call(connection) if @block
-    end
+    end unless jruby?
   end
 
   # TCP server class.  Listens on the specified host and port and creates

@@ -1,5 +1,8 @@
 import io.Buffer;
 import io.cool.Coolio;
+import io.cool.Loop;
+import io.cool.Watcher;
+
 import java.io.IOException;
 
 import org.jruby.Ruby;
@@ -15,6 +18,10 @@ public class CoolioExtService implements BasicLibraryService {
 		Buffer.load(runtime);
 
 		Coolio.load(runtime);
+
+		Loop.load(runtime);
+		Watcher.load(runtime);
+
 		return true;
 	}
 }
