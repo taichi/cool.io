@@ -96,25 +96,18 @@ public class IOWatcher extends Watcher {
 
 	void register(java.nio.channels.SocketChannel sc) {
 		Channel ch = new NioSocketChannel(sc);
-		ch.config().setRecvByteBufAllocator(() -> new HackHandle());
 		ch.pipeline().addLast(new ChannelInboundHandlerAdapter() {
-			@Override
-			public void channelActive(ChannelHandlerContext ctx)
-					throws Exception {
-				dispatch(SelectionKey.OP_WRITE);
-			}
-
 			@Override
 			public void channelRead(ChannelHandlerContext ctx, Object msg)
 					throws Exception {
-				ch.config().setAutoRead(false);
-				dispatch(SelectionKey.OP_READ);
-			}
-
-			@Override
-			public void channelReadComplete(ChannelHandlerContext ctx)
-					throws Exception {
-				ch.config().setAutoRead(true);
+				IRubyObject ro = Utils.getVar(IOWatcher.this, "@coolio_io");
+				if (ro != null && ro.isNil() == false) {
+					throttlingDispatch(w -> {
+						ro.callMethod(getRuntime().getCurrentContext(),
+								"on_read",
+								Utils.to(getRuntime(), (ByteBuf) msg));
+					});
+				}
 			}
 		});
 		ch.closeFuture().addListener(f -> {
